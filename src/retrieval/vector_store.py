@@ -54,7 +54,7 @@ def query_vectorstore(collection, query: str, top_k: int = 5):
 
 if __name__ == "__main__":
     vault_path = Path("././data/sample-vault/")
-    store_path = "././data/chroma-store/"
+    store_path = Path("././data/chroma-store/")
 
     chunks = run_ingestion(vault_path)
     print(f"Loaded {len(chunks)} chunks")
