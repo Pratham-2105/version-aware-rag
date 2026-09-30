@@ -1,0 +1,27 @@
+# Environment
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# User data (never commit personal files)
+data/user-vault/
+
+# Vector store (regenerated from ingestion)
+data/chroma/
+*.db
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
