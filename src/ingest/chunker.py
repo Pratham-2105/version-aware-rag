@@ -1,5 +1,6 @@
 import re
 
+
 def chunk_document(text: str, relative_path: str) -> list:
     """
     Split markdown text on headers. Each chunk carries its header path
