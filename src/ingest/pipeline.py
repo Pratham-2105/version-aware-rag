@@ -1,22 +1,34 @@
 from pathlib import Path
+import sys
 
-from chunker import chunk_document
-from loaders import load_vault
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-directory_path = Path("././data/sample-vault/")
+from src.ingest.chunker import chunk_document
+from src.ingest.loaders import load_vault
 
-file_vault_dict = load_vault(directory_path)
 
-file_chunks = []
+def run_ingestion(value_path: str) -> list:
 
-for key, value in file_vault_dict.items():
-    chunks = chunk_document(value, key)
-    file_chunks.extend(chunks)
+    file_vault_dict = load_vault(value_path)
 
-for chunk in file_chunks[:5]:
-    print(f"Source: {chunk['source']}")
-    print(f"Header: {chunk['header_path']}")
-    print(f"Content: {chunk['content'][:200]}")
-    print("---")
+    file_chunks = []
 
-print(f"Length of file_chunks: {len(file_chunks)}")
+    for key, value in file_vault_dict.items():
+        chunks = chunk_document(value, key)
+        file_chunks.extend(chunks)
+
+    return file_chunks
+
+if __name__ == "__main__":
+
+    directory_path = Path("././data/sample-vault/")
+
+    chunks = run_ingestion(directory_path)
+
+    for chunk in chunks[:5]:
+        print(f"Source: {chunk['source']}")
+        print(f"Header: {chunk['header_path']}")
+        print(f"Content: {chunk['content'][:200]}")
+        print("---")
+
+    print(f"Length of file_chunks: {len(chunks)}")
