@@ -56,6 +56,7 @@ What the baseline shows:
 - **Cross-document questions are the weakest** (16.7%). Facts spread over several files get crowded out of the top 5 by duplicate chunks.
 - **Grounding works.** The model refused all 6 questions whose answers are not in the vault, including two whose answers exist only in a folder that is deliberately excluded from ingestion.
 
+Wrong answers and their causes are tracked in [`eval/failure_log.md`](eval/failure_log.md).
 Full per-question results: `eval/results/`.
 
 ---
