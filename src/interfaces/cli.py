@@ -39,6 +39,26 @@ SYSTEM_PROMPT = (
     "4. Never make up information that isn't in the sources.\n\n"
 )
 
+def answer_question(collection, question: str) -> str:
+
+    results = query_vectorstore(collection, query=question)
+    context = format_context(results)
+
+    prompt_with_context = SYSTEM_PROMPT + "SOURCES:\n" + context
+    
+    response = ollama_client.chat(
+        model="qwen2.5:7b",
+        messages=[
+            {"role": "system", "content": prompt_with_context},
+            {"role": "user", "content": question},
+        ],
+    )
+
+    output_answer = response['message']['content']
+
+    return output_answer, results["metadatas"][0]
+
+
 if __name__ == "__main__":
     print("Jarvis CLI — type 'exit' to quit\n")
 
@@ -62,6 +82,7 @@ if __name__ == "__main__":
                 {"role": "system", "content": prompt_with_context},
                 {"role": "user", "content": user_input},
             ],
+            options={"temperature": 0}
         )
 
         print(f"\nJarvis: {response['message']['content']}\n")
