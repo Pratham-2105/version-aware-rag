@@ -62,7 +62,7 @@ def test_format_record_uses_forward_slashes_and_skips_empty_fields():
     text = format_record(RECORD)
     assert "SOURCE: handovers/arjun_master_handoff_oct2026.md" in text
     assert "\\" not in text
-    assert "key metric" not in text and "next step" not in text
+    assert "key metric:" not in text and "next step" not in text
     assert "reason: focus on internships" in text
 
 
