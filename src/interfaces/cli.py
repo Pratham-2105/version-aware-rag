@@ -1,3 +1,12 @@
+"""Jarvis CLI.
+
+    python -u src/interfaces/cli.py            V1 pipeline (fixed retrieve -> answer; what eval measures)
+    python -u src/interfaces/cli.py --agent    Stage 6 agent (model chooses tools)
+
+Importing this file has no side effects (no ingestion, no index build), so
+run_eval.py can import answer_question cheaply. Build the index with scripts/ingest.py.
+"""
+import argparse
 import sys
 from pathlib import Path
 
@@ -5,66 +14,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from ollama import Client
 
-from src.ingest.pipeline import run_ingestion
-from src.retrieval.hybrid import HybridRetriever
-from src.retrieval.vector_store import build_vectorstore, query_vectorstore
-from src.retrieval.version_ranker import (
-    expand_versions,
-    order_for_context,
-    version_filter,
-)
-from src.router.classifier import classify_intent
+from src.retrieval.search import format_context, retrieve
+from src.retrieval.vector_store import open_vectorstore
 
-RETRIEVAL_MODE = "hybrid"
-
-_retrievers = {}
-
-
-def get_retriever(collection):
-    """Build the BM25 index once per collection, then reuse it."""
-    if collection.name not in _retrievers:
-        _retrievers[collection.name] = HybridRetriever(collection)
-    return _retrievers[collection.name]
-
-
-def retrieve(collection, question, top_k=5):
-    intent = classify_intent(question)
-    retriever = get_retriever(collection)
-    results = retriever.search(
-        question, top_k=top_k, where=version_filter(intent), mode=RETRIEVAL_MODE
-    )
-    if intent == "historical":
-        results = expand_versions(results, retriever.bm25, question)
-    return order_for_context(results, intent)
-
-
-vault_path = Path("././data/sample-vault/")
-store_path = Path("././data/chroma-store/")
-
-chunks = run_ingestion(vault_path)
-collection = build_vectorstore(chunks, store_path, "sample_collection")
+STORE_PATH = Path("data/chroma-store/")
+COLLECTION_NAME = "sample_collection"
+LLM_MODEL = "qwen2.5:7b"
+LLM_OPTIONS = {"temperature": 0, "seed": 42}
 
 ollama_client = Client(host="http://127.0.0.1:11434")
-
-
-def format_context(results):
-    parts = []
-    docs = results["documents"][0]
-    metas = results["metadatas"][0]
-    for n, (doc, meta) in enumerate(zip(docs, metas), start=1):
-        if meta.get("date_source") == "mtime":
-            date_note = "undated"
-        else:
-            date_note = meta.get("version_date", "undated")
-        if meta.get("group_size", 1) > 1:
-            date_note += (
-                ", latest version" if meta.get("is_latest") else ", older version"
-            )
-        parts.append(
-            f"[Source {n}] {meta['source']} > {meta['header_path']} ({date_note})\n{doc}"
-        )
-    return "\n\n".join(parts)
-
 
 SYSTEM_PROMPT = (
     "You are a knowledge assistant that answers questions based ONLY on the provided sources. "
@@ -77,51 +35,73 @@ SYSTEM_PROMPT = (
 )
 
 
-def answer_question(collection, question: str) -> str:
-
+def answer_question(collection, question: str):
+    """V1 pipeline: retrieve (Stage 4) -> stuff context -> one LLM call."""
     results = retrieve(collection, question)
     context = format_context(results)
 
     prompt_with_context = SYSTEM_PROMPT + "SOURCES:\n" + context
 
     response = ollama_client.chat(
-        model="qwen2.5:7b",
+        model=LLM_MODEL,
         messages=[
             {"role": "system", "content": prompt_with_context},
             {"role": "user", "content": question},
         ],
-        options={"temperature": 0, "seed": 42},
+        options=LLM_OPTIONS,
     )
 
-    output_answer = response["message"]["content"]
+    return response["message"]["content"], results["metadatas"][0]
 
-    return output_answer, results["metadatas"][0]
+
+def chat_loop(handle):
+    while True:
+        user_input = input("You: ").strip()
+        if user_input.lower() in ("exit", "quit", "break"):
+            break
+        if user_input:
+            handle(user_input)
+
+
+def run_pipeline_chat():
+    collection = open_vectorstore(STORE_PATH, COLLECTION_NAME)
+
+    def handle(question):
+        answer, metas = answer_question(collection, question)
+        sources = sorted({m["source"].replace("\\", "/") for m in metas})
+        print(f"\nJarvis: {answer}\n  sources: {', '.join(sources)}\n")
+
+    chat_loop(handle)
+
+
+def run_agent_chat():
+    from src.agent.agent import ask, build_agent, model_label
+
+    agent = build_agent()
+    print(f"(agent mode, model: {model_label()})\n")
+
+    def handle(question):
+        r = ask(agent, question)
+        for call in r["tool_calls"]:
+            args = ", ".join(f"{k}={v!r}" for k, v in call["args"].items())
+            print(f"  [tool] {call['name']}({args})")
+        print(f"\nJarvis: {r['answer']}\n  status: {r['status']}")
+        if r["invented_citations"]:
+            print(f"  invented citations: {', '.join(r['invented_citations'])}")
+        if r["answer"] != r["draft"]:
+            print(f"  (blocked draft: {r['draft'][:200]!r})")
+        print()
+
+    chat_loop(handle)
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Jarvis CLI")
+    parser.add_argument("--agent", action="store_true", help="use the Stage 6 tool-calling agent")
+    args = parser.parse_args()
+
     print("Jarvis CLI — type 'exit' to quit\n")
-
-    while True:
-        user_input = input("You: ").strip()
-
-        if user_input.lower() in ("exit", "quit", "break"):
-            break
-
-        if not user_input:
-            continue
-
-        results = query_vectorstore(collection, query=user_input)
-        context = format_context(results)
-
-        prompt_with_context = SYSTEM_PROMPT + "SOURCES:\n" + context
-
-        response = ollama_client.chat(
-            model="qwen2.5:7b",
-            messages=[
-                {"role": "system", "content": prompt_with_context},
-                {"role": "user", "content": user_input},
-            ],
-            options={"temperature": 0, "seed": 42},
-        )
-
-        print(f"\nJarvis: {response['message']['content']}\n")
+    if args.agent:
+        run_agent_chat()
+    else:
+        run_pipeline_chat()
