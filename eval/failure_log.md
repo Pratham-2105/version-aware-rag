@@ -3,7 +3,9 @@
 Every wrong answer, why it was wrong, and which stage fixed it (or didn't).
 Source of truth for numbers: `eval/results/`.
 
-Config for every run unless noted: qwen2.5:7b (temperature 0), nomic-embed-text, top_k = 5.
+Config for every run unless noted: qwen2.5:7b, nomic-embed-text, top_k = 5.
+
+**Correction (found 7 Oct 2026, see "Noise check"):** until the end of Stage 4, `answer_question()` (the function the eval calls) never passed temperature or seed to Ollama, so every run up to and including Stage 4 Run 3 used Ollama's default temperature, not 0. Notes below that say "temperature 0" or "seed fixed" for those runs describe what was intended, not what ran. The text is kept as written at the time, with corrections marked.
 
 ---
 
@@ -68,7 +70,7 @@ Results file: `stage4a_hybrid_20261007_153907.json`
 
 Three changes, tested together: an intent classifier (current_state / historical / lookup), an `is_latest` filter for current-state questions applied to both retrievers, and chronological ordering plus visible dates in the context (with one added prompt rule: use the newest value for the current state, describe change in date order for history).
 
-### Run 1 — without version expansion, unseeded
+### Run 1 — without version expansion
 
 Results file: `stage4b_version_aware_20261007_155101.json` — 37/45 (82.2%)
 
@@ -86,11 +88,11 @@ Results file: `stage4b_version_aware_20261007_155101.json` — 37/45 (82.2%)
 - Q14 "How many LeetCode problems has Arjun solved?" → lookup (answered correctly anyway).
 - Q43 "Is Arjun planning to learn Next.js?" → lookup. This misrouting caused the wrong answer: the June plan was not filtered out.
 - Q18 "When was StudyBuddy abandoned and why?" → lookup (answer correct).
-- The regex was deliberately **not** tuned to these phrasings; that would overfit the classifier to the test set. A model-based router (Stage 6.5) is the planned fix.
+- The regex was deliberately **not** tuned to these phrasings; that would overfit the classifier to the test set.
 
 **Remaining historical failures had one shared cause:** Q20 retrieved the October handoff (paused) but not September (active); Q21 retrieved resume v1 but not v2. A "how did X change" question needs both ends of the change, and relevance ranking returned only one version.
 
-### Run 2 — with version expansion, unseeded
+### Run 2 — with version expansion
 
 Results file: `stage4b_version_expansion_20261007_155816.json` — 35/45 (77.8%)
 
@@ -98,72 +100,132 @@ Version expansion: for historical questions, every multi-version family in the r
 
 - **Expansion worked as designed.** Q20 now retrieved all four handoffs in date order; Q21 retrieved resume v2.
 - **Both answers were still wrong.** Q20 claimed QubitML was paused as of 22 September; Q21 attributed v1's skill list to v2. The evidence was present and ordered — the 7B model mislabelled which source said what. **Model-capacity failure, not retrieval.**
-- **Q43 and Q44 flipped to failing**, but both are routed as lookup, so their retrieval was identical to Run 1. The only thing that could change was the model output. **qwen2.5:7b at temperature 0 is not deterministic across runs** (likely GPU floating-point nondeterminism in Ollama). This means stage-to-stage differences of one or two questions are within noise.
+- **Q43 and Q44 flipped to failing**, but both are routed as lookup, so their retrieval was identical to Run 1. The only thing that could change was the model output. Concluded at the time that the model is not deterministic across runs. *Correction: this run was at Ollama's default temperature, so the flips were expected sampling, not GPU nondeterminism. True temperature-0 noise was measured later and is smaller.*
 
-### Run 3 — with version expansion, seed fixed (final Stage 4 row)
+### Run 3 — with version expansion, "seed fixed"
 
 Results file: `stage4b_version_expansion_20261007_160237.json` — 36/45 (80.0%)
 
-Change: Ollama options now `{"temperature": 0, "seed": 42}`.
+Intended change: Ollama options `{"temperature": 0, "seed": 42}`. *Correction: the options were added to the CLI chat loop, not to `answer_question()`, so this run also used the default temperature. It is superseded by the noise check below.*
 
 **Failed (9):** 7, 15, 20, 21, 27, 30, 32, 33, 37
 
-| Category | Answer | Source |
-|---|---|---|
-| Simple lookup | 76.9% | 100% |
-| Current state | 88.9% | 88.9% |
-| Historical | 66.7% | 100% |
-| Status | 100% | 100% |
-| Cross-document | 66.7% | 66.7% |
-| Should refuse | 83.3% | n/a |
+- Q33 and Q37 failed here for the first time, on the lookup path whose retrieval had not changed. See the noise check for what happened next.
 
-- **Q33 (Sem 5 subjects) and Q37 (refusal)** failed for the first time. Both are on the lookup path, whose retrieval did not change. Treated as model variance until the noise check is done.
-- Q43 and Q18 passed in this run; Q43's answer has not been manually checked, so whether it is a true pass is unknown.
+---
 
-### Still failing after Stage 4 — by cause
+## Noise check — Stage 4 config, 3 runs (7 Oct 2026)
+
+Results files: `noise_check_a_20261007_173045.json`, `noise_check_b_20261007_173420.json`, `noise_check_c_20261007_173824.json`
+
+While building Stage 6 I found that `answer_question()` never passed temperature or seed to Ollama. Only the chat loop did, and the eval doesn't use it. After fixing it, the same Stage 4 setup was run three times.
+
+| Run | Answer | Current state | Refusals | Failed IDs |
+|---|---|---|---|---|
+| a | 36/45 (80.0%) | 7/9 | 6/6 | 7, 12, 15, 18, 21, 27, 30, 32, 33 |
+| b | 37/45 (82.2%) | 8/9 | 6/6 | 7, 15, 18, 21, 27, 30, 32, 33 |
+| c | 37/45 (82.2%) | 8/9 | 6/6 | 7, 15, 18, 21, 27, 30, 32, 33 |
+| **Mean** | **81.5%** | **85.2%** | **100%** | |
+
+- **Eight questions fail every time:** 7, 15, 18, 21, 27, 30, 32, 33. These are the real failures (18 is the known "machine learning" vs "ml" scoring miss).
+- **Q12 failed once in three.** That is the remaining noise: even at temperature 0 with a seed, the GPU can flip a near-tied token. A one-question difference (2.2 points overall, 11 points on the 9-question current-state category) is noise.
+- **Q20 and Q37 passed all three times,** so their failures in Run 3 were temperature noise. So was the old 5/6 refusal score.
+- **Q33 fails all three times,** so it is a real failure, not variance as Run 3 assumed.
+
+Lesson: check that the config you think you're testing is the one the code actually runs. The seed fix was in the file, just not on the path the eval used.
+
+### Still failing after Stage 4 (3 clean runs)
 
 | ID | Question | Cause | Next fix |
 |---|---|---|---|
 | 7 | PixelNet parameter count | Right file, wrong chunk | Larger top_k or section-level retrieval |
-| 15 | Current tech stack | Answered NoteFlow's stack instead of Arjun's | Model / prompt; check retrieved chunk |
-| 20 | When QubitML went active → paused | Evidence present and ordered; model misread it | Stronger model |
+| 15 | Current tech stack | Answered NoteFlow's stack instead of Arjun's | Model / prompt |
+| 18 | When StudyBuddy was abandoned and why | Answer correct; scoring miss ("machine learning" vs "ml") | LLM judge |
 | 21 | Resume v1 → v2 | Evidence present; model mixed up versions | Stronger model |
-| 27 | Projects with Python + ML | Project handovers not retrieved; resume chunks won | Recall on generic queries |
+| 27 | Projects with Python + ML | Project handovers not retrieved; resume chunks won | Recall on generic queries (the agent fixes it) |
 | 30 | DP problems solved | `dp_problems.md` retrieved, model answered from contest log | Model / prompt |
 | 32 | Who is Rohan? | Chronicles not retrieved; handoffs mentioning Rohan outranked them | Recall |
-| 33 | Sem 5 subjects | Passed in earlier runs; variance | Noise check |
-| 37 | Accepted internship (should refuse) | Passed in earlier runs; variance | Noise check |
+| 33 | Sem 5 subjects | Fails every clean run; not yet analysed (the agent answers it, so the file is findable) | Check retrieved chunk |
 
 ---
 
-## Stage 5 — project registry
+## Stage 5 — project registry (7 Oct 2026)
 
 Not part of the 45-question eval. Checked by hand against the vault files.
 
-Setup: qwen2.5:7b reads each of the 9 files in `projects/` and `handovers/` once and fills in a
-fixed form per project (name, status, reason, key result). Code merges these into one record
-per project, newest version wins.
+Setup: qwen2.5:7b reads each of the 9 files in `projects/` and `handovers/` once and fills in a fixed form per project (name, status, reason, key result). Code merges these into one record per project, newest version wins.
 
-**Result (5 projects):** status 5/5, key result 5/5, status-change dates 4/5, reason 2/5.
+**Hand check of the 5 projects**
 
-- **Build hung for 5+ minutes on `pixelnet_handover.md`.** The model kept repeating the same
-  list of techniques forever. Fixed by capping output length and limiting the list to 8 items.
-- **"N/A" instead of an empty field.** The model ignored the instruction. Left alone, an "N/A"
-  from a newer file would have replaced PixelNet's 91.3%. Code now treats placeholders as empty.
-- **Names with subtitles** ("DataLens — CSV Analysis Tool") split one project into two.
-  Code now strips the subtitle.
-- **A feature saved as a metric** (StudyBuddy's "real-time chat"). A key result must now
-  contain a number.
-- **Reason filled with the status word ("PAUSED") or a project description.** Partly fixed:
-  QubitML and StudyBuddy now show their real reasons. The other three are done/active projects
-  with no stated reason, and the model still writes something.
-- **Two files with the same date** were decided by alphabetical order. Now an explicit rule:
-  the project's own file wins.
+| Field | Correct |
+|---|---|
+| Status | 5/5 |
+| Key result | 5/5 |
+| Status-change dates | 4/5 |
+| Reason for status | 2/5 real |
 
-**Still open**
-- QubitML's pause shows 30 Sep in the overview (file modified date) instead of 1 Oct.
-- June PixelNet read as "planned" from "very early stage". Borderline wording.
-- The October handoff extraction skipped StudyBuddy, so its date shows August. Status is still correct.
+- **QubitML's pause date shows 2026-09-30,** the modified time of a file, instead of 2026-10-01 from the October handoff. The overview's history uses weak dates. *Stage 6 hides weak dates in the agent's view of the registry; the generated overview still shows them.*
+- **Reasons:** only QubitML and StudyBuddy have a reason stated in the notes. For the three done or active projects the model fills in something anyway.
 
-**Takeaway:** fields where the model picks from a fixed list (status) were right from the first
-run. Free-text fields needed checking in code.
+**Bugs found while building**
+- **The build hung.** qwen kept extending the tech list forever inside valid JSON. Fixed with a token cap and a timeout (the fuse), and a maximum list length in the schema (the real fix: the grammar now stops the list).
+- **"N/A" as a value.** The model wrote "N/A" for missing metrics, which would have overwritten 91.3% as the newest metric. Code now treats placeholder values as empty.
+- **Subtitled names** ("NoteFlow — AI-Powered Note Intelligence") split one project into several. Code now strips subtitles before merging.
+- **A feature stored as a metric.** Code now requires a metric to contain a number.
+- **The status copied as the reason** ("DONE"). The field was renamed `status_reason`, and the form now asks for the description and evidence before the status, since fields are generated in order.
+
+Lesson: constrained decoding enforces the shape of the output, not its meaning. Fields picked from a fixed list are reliable; free text needs checking in code.
+
+---
+
+## Stage 6 — agent with tools (7 Oct 2026)
+
+Results files: `stage6_agent_qwen_20261007_183109.json` (v1), `stage6_agent_v2_qwen_20261007_184124.json` (v2), `stage6_agent_final_qwen_a/b/c_*.json` (final)
+
+The agent uses the same retrieval and registry as the pipeline, but a model decides which tool to call. Three tools: search_notes (with a time mode: current, history or any), get_project_status and list_projects. Code checks that every answer cites a file the tools actually returned. All runs on qwen2.5:7b, temperature 0, seed 42 (this time on the path that actually runs).
+
+The 5-question checkpoint passed on the first try: right tool and right mode every time, all answers cited. The full 45 questions told a different story.
+
+**Version 1 — 57.8%.** The model routed all 15 time-sensitive questions correctly (the regex classifier gets 12), but end-to-end it was far worse than the pipeline. Sorting the 19 failures by cause:
+- **Six used the registry for questions that had nothing to do with status:** get_project_status("web development"), the registry for PixelNet's accuracy history. Q27 passed an empty status that the tool rejected.
+- **Four refused without searching at all.**
+- **Five retrieved the right file and then read it wrong.**
+- **Two said "not stated" and then guessed anyway.**
+- **Q20 answered "paused on 2026-09-30",** the registry's weak-date bug from Stage 5 leaking through.
+
+**Version 2 — 68.9%.** The fixes targeted failure types, not specific questions:
+- registry tools described as status-only
+- list_projects given an explicit "all" option
+- weak dates hidden from registry history (the same rule search already used)
+- a metric history line
+- one code-sent follow-up ("search first") when the model refuses without searching
+
+This fixed 4, 12, 17, 27 and 29, with no regressions. But 5 answers were now blocked as uncited, and reading them showed that 3 (Q19, Q33, Q42) were correct: the model found the answer and forgot the brackets.
+
+**Final — 75.6% in all three runs.** Code now asks once for citations before blocking. Nothing was blocked, and the citation retry recovered 19 and 42. Retries fired on 6 questions in every run (15, 19, 21: cite; 29, 40, 42: search then cite). The agent was frozen and committed before the three runs; all three gave the same score and the same failed IDs: 7, 13, 15, 18, 20, 21, 30, 32, 37, 39, 43.
+
+| Category | Pipeline (mean of 3) | Agent (mean of 3) |
+|---|---|---|
+| Simple lookup | 76.9 | 84.6 |
+| Current state | 85.2 | 66.7 |
+| Change over time | 66.7 | 50.0 |
+| Project status | 100 | 100 |
+| Across documents | 66.7 | 83.3 |
+| Should refuse | 100 | 66.7 |
+| **Overall** | **81.5** | **75.6** |
+
+- **Where the agent wins:** lookups and cross-document questions. It writes its own queries and can search more than once, which is how it fixes Q27 and Q33, two stable pipeline failures.
+- **Where it loses:** the model's reading and judgement. It finds the right file and picks the wrong fact (7, 13, 15, 30), gives only the end date of a change (20), or guesses after saying the notes don't say (37, 39).
+- **Q43 is a real routing limit.** "Is Arjun planning to learn Next.js?" is a present-tense question whose answer lives in the June plan, which the "current" mode filters out.
+
+Lesson: a prompt can ask for a rule, but only code can enforce it. Both the "always search" and "always cite" rules were in the prompt from the start; the model followed them only after code checked and asked again.
+
+---
+
+## Open items
+
+- Run the same 45 questions on a stronger hosted model, to see how much of the remaining gap (pipeline and agent) is the 7B model.
+- The October handover's header says "October 10, 2026" but the filename rule stores 2026-10-01. A header date in the same month as the filename should win. Not changed yet, because it would move every earlier row.
+- The generated project overview still shows weak (modified-time) dates in its status history.
+- Key-fact scoring errors (Q18 false fail, Q43 false pass): an LLM judge, spot-checked by hand, as a second scorer.
+- Q33 in the pipeline: find out why it fails every clean run when the agent answers it.

@@ -15,8 +15,8 @@ from src.interfaces.cli import answer_question
 
 # "pipeline" = V1 fixed pipeline (cli.answer_question), the Stages 0-4 rows.
 # "agent"    = Stage 6 agent (model picks tools and the time mode itself).
-ANSWER_MODE = "agent"
-STAGE_NAME = "stage6_agent_final_qwen_a"
+ANSWER_MODE = "pipeline"
+STAGE_NAME = "stage6_agent_final_qwen_c"
 LLM_MODEL = "qwen2.5:7b"   # pipeline mode only; agent mode reads the model from .env
 EMBED_MODEL = "nomic-embed-text"
 RESULTS_DIR = Path("eval/results")

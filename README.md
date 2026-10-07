@@ -4,7 +4,7 @@
 
 Notes, plans and project files rarely stay in one clean version. They get duplicated, backed up, rewritten, and quietly corrected by newer files while the old ones stay around. A standard RAG pipeline doesn't know any of this. It retrieves whatever text sounds closest to the question, and when that text comes from an outdated version, the model gives a confident, wrong answer.
 
-This project measures that problem on a fixed set of questions and then fixes it one stage at a time: deduplication, grouping files into versions, hybrid search, version-aware retrieval, and a structured project registry. Every number below comes from `eval/run_eval.py` or a hand check, and the full history of what went wrong is in [`eval/failure_log.md`](eval/failure_log.md).
+This project measures that problem on a fixed set of questions and then fixes it one stage at a time: deduplication, grouping files into versions, hybrid search, version-aware retrieval, a structured project registry, and finally a tool-using agent. Every number below comes from `eval/run_eval.py` or a hand check, and the full history of what went wrong is in [`eval/failure_log.md`](eval/failure_log.md).
 
 ---
 
@@ -35,21 +35,24 @@ Ask the baseline system *"What is Arjun's current Codeforces rating?"* and it re
 | + Deduplication and version grouping | 76.9% | 60.0% | 66.7% | 100% |
 | + Hybrid search (BM25 + dense) | 89.7% | 75.6% | 55.6% | 100% |
 | **+ Version-aware retrieval** (mean of 3 runs) | **92.3%** | **81.5%** | **85.2%** | **100%** |
+| Agent: the model picks the tools (mean of 3 runs) | 92.3% | 75.6% | 66.7% | 66.7% |
+
+The agent row is not a further step on top of the stages above. It is a different design: the same retrieval and registry, but a model decides which tool to call and how to search, instead of fixed code. It is compared against the best pipeline row.
 
 The project registry (below) doesn't change these numbers, since project status questions were already 5/5. It is checked separately.
 
-All runs use the same local setup: `qwen2.5:7b` through Ollama, `nomic-embed-text` embeddings, top 5 chunks, and a Chroma vector store. The model never changes between stages, so improvements come from retrieval, not from a better model. The final row is the mean of three runs at temperature 0 with a fixed seed. The earlier rows are single runs: until Stage 4 was finished, a bug meant the evaluation ran at Ollama's default temperature instead of 0 (found and fixed on 7 Oct).
+All runs use the same local setup: `qwen2.5:7b` through Ollama, `nomic-embed-text` embeddings, top 5 chunks, and a Chroma vector store. The model never changes between stages, so improvements come from retrieval, not from a better model. The last two rows are the mean of three runs at temperature 0 with a fixed seed. The earlier rows are single runs: until Stage 4 was finished, a bug meant the evaluation ran at Ollama's default temperature instead of 0 (found and fixed on 7 Oct).
 
 ### By category (answer correct / source found)
 
-| Category | n | Baseline | + Dedup | + Hybrid | + Version-aware |
-|---|---|---|---|---|---|
-| Simple lookup | 13 | 53.8 / 84.6 | 53.8 / 84.6 | 84.6 / 100 | 76.9 / 100 |
-| Current state | 9 | 55.6 / 77.8 | 66.7 / 77.8 | 55.6 / 77.8 | 85.2 / 88.9 |
-| Change over time | 6 | 33.3 / 83.3 | 50.0 / 83.3 | 50.0 / 100 | 66.7 / 100 |
-| Project status | 5 | 80.0 / 80.0 | 80.0 / 80.0 | 100 / 100 | 100 / 100 |
-| Across documents | 6 | 16.7 / 50.0 | 16.7 / 50.0 | 66.7 / 66.7 | 66.7 / 66.7 |
-| Should refuse | 6 | 100 | 100 | 100 | 100 |
+| Category | n | Baseline | + Dedup | + Hybrid | + Version-aware | Agent |
+|---|---|---|---|---|---|---|
+| Simple lookup | 13 | 53.8 / 84.6 | 53.8 / 84.6 | 84.6 / 100 | 76.9 / 100 | 84.6 / 100 |
+| Current state | 9 | 55.6 / 77.8 | 66.7 / 77.8 | 55.6 / 77.8 | 85.2 / 88.9 | 66.7 / 77.8 |
+| Change over time | 6 | 33.3 / 83.3 | 50.0 / 83.3 | 50.0 / 100 | 66.7 / 100 | 50.0 / 100 |
+| Project status | 5 | 80.0 / 80.0 | 80.0 / 80.0 | 100 / 100 | 100 / 100 | 100 / 80.0 |
+| Across documents | 6 | 16.7 / 50.0 | 16.7 / 50.0 | 66.7 / 66.7 | 66.7 / 66.7 | 83.3 / 100 |
+| Should refuse | 6 | 100 | 100 | 100 | 100 | 66.7 |
 
 ### What each stage taught us
 
@@ -71,13 +74,24 @@ Current-state accuracy went from 55.6% to 85.2% (mean of three runs), and the ra
 
 Checked by hand: all 5 statuses and key results are correct. The model was reliable when picking from a fixed list (status) and unreliable when writing free text: it wrote "N/A", repeated itself, or copied the status as the reason. So code checks every field before it is saved.
 
+**Agent.** Instead of fixed code deciding each step, a model (built with LangChain's `create_agent`) chooses between three tools: search the notes (and whether to look at the present, the history, or everything), look up one project's status, or list projects by status. Every answer must cite the files the tools actually returned, and code checks this.
+
+The model picked the right time mode on all 15 time-sensitive questions, better than the rule-based classifier (12 of 15). It also did better on lookups (84.6% vs 76.9%) and on questions that need several documents (83.3% vs 66.7%), because it writes its own search queries and can search more than once. But overall it scored 75.6% against the pipeline's 81.5%. With a 7B model, the losses come from the model's own decisions, not from where it looks:
+
+- The first version scored 57.8%. It used the project registry for questions that had nothing to do with status, and it answered "I don't know" without searching at all.
+- Narrowing the registry tools to status questions only, and having code send one follow-up ("search first") when the model refuses without searching, raised it to 68.9%.
+- The model often found the right answer and then forgot to cite it, so the citation check threw correct answers away. Having code ask once for citations before blocking raised it to 75.6%.
+
+The rule that came out of this: **a prompt can ask the model to follow a rule, but only code can make sure it did.** Each fix was written for a type of failure, not for specific questions, and the agent was frozen before the final three runs.
+
 ### Honest limits
 
 - **The set is small.** One question moves the overall score by 2.2 points and a category score by up to 20. Read small differences with caution.
-- **Run-to-run variation.** Three identical runs (temperature 0, fixed seed) still differed by one question. On a GPU, tiny floating-point differences can flip a near-tie between two tokens even with greedy decoding. So a one-question difference between stages (2.2 points overall, 11 points on the 9-question current-state category) is noise. The big jumps are not.
+- **Run-to-run variation.** Three identical runs of the pipeline (temperature 0, fixed seed) still differed by one question. On a GPU, tiny floating-point differences can flip a near-tie between two tokens even with greedy decoding. So a one-question difference between stages (2.2 points overall, 11 points on the 9-question current-state category) is noise. The big jumps are not. The three agent runs happened to come out identical.
 - **Key-fact scoring is imperfect.** An answer counts as correct if it contains every expected key fact. A manual review of one run found one wrong answer scored as correct and one correct answer scored as wrong. An LLM judge, spot-checked by hand, is planned as a second scorer.
-- **The remaining failures are mostly the model, not retrieval.** For both of the remaining "change over time" failures, every relevant version is now retrieved and shown in date order, and the 7B model still mixes up which source said what. Running the same evaluation with a stronger model is planned.
-- **Refusals.** An earlier single run showed 5/6 correct refusals. All three clean runs got 6/6, so that drop came from the temperature bug, not from retrieval.
+- **The remaining failures are mostly the model, not retrieval.** For both of the remaining "change over time" failures in the pipeline, every relevant version is now retrieved and shown in date order, and the 7B model still mixes up which source said what. Running the same evaluation with a stronger model is planned.
+- **The agent's "source found" is measured more loosely.** It counts any file returned by any tool call, while the pipeline counts a fixed top 5. Compare the two on answer correctness.
+- **The agent still guesses on two refusal questions.** It correctly says the notes don't state the answer, then adds a guess anyway. The prompt forbids this; a 7B model doesn't always listen.
 - **The registry's reasons are partial.** Only 2 of 5 projects have a real stated reason; the other three are finished or active projects with no reason in the notes, and the model fills in something anyway.
 
 ---
@@ -108,7 +122,7 @@ PROJECT REGISTRY  (python scripts/build_registry.py)
      ├─ check every field     code rejects "N/A", metrics without numbers, etc.
      └─ merge                 one record per project, newest version wins
 
-QUESTION TIME  (cli.py, run_eval.py)
+QUESTION TIME, PIPELINE  (cli.py, run_eval.py)
 
   question
      ├─ classify              present / change over time / lookup
@@ -119,6 +133,17 @@ QUESTION TIME  (cli.py, run_eval.py)
      └─ answer                each source shown with its date and whether it
                               is the latest version; the model must cite
                               sources or say it doesn't know
+
+QUESTION TIME, AGENT  (cli.py --agent)
+
+  question
+     ├─ model picks a tool    search_notes (present / history / any),
+     │                        get_project_status, or list_projects
+     ├─ tools run             the same retrieval and registry as above
+     ├─ model answers         from the tool results, citing file paths
+     └─ code checks           refused without searching → told to search once;
+                              no valid citation → asked to cite once;
+                              still uncited → replaced with "I don't know"
 ```
 
 A few decisions worth explaining:
@@ -126,9 +151,10 @@ A few decisions worth explaining:
 - **Dates come before deduplication.** Two versions of a handover can be 90% identical with one changed number. Treating them as duplicates would throw away the newer fact, so near-duplicates must also share a date.
 - **Version information is decided per file and stored per chunk.** A chunk inherits its file's date and family, so retrieval can filter without re-reading anything.
 - **Search results are merged by rank, not score.** Keyword scores and embedding distances are on different scales. Reciprocal Rank Fusion avoids normalising them.
-- **Weak dates are hidden from the model.** Files dated only by modified time show as "undated", because a copy date would make an old file look like the newest one.
-- **The question classifier is rule-based for now.** It is fast, free, testable, and routes 12 of the 15 time-sensitive questions correctly. A model-based router is planned.
-- **The model reads, code decides.** In the registry, the model only extracts what each file says. Dates, sources and which version wins are handled by code, so they can't be invented.
+- **Weak dates are hidden from the model.** Files dated only by modified time show as "undated", because a copy date would make an old file look like the newest one. The agent's project history follows the same rule.
+- **The question classifier is rule-based for now.** It is fast, free, testable, and routes 12 of the 15 time-sensitive questions correctly. The agent routes all 15 correctly, but costs accuracy elsewhere.
+- **The model reads, code decides.** In the registry, the model only extracts what each file says. Dates, sources and which version wins are handled by code, so they can't be invented. In the agent, code checks every citation against the files the tools actually returned.
+- **Three tools, not five.** A timeline tool and an "have I planned this already" tool were folded into search and the prompt. Overlapping tools make a small model pick the wrong one.
 
 ---
 
@@ -147,16 +173,22 @@ ollama pull nomic-embed-text
 ollama pull qwen2.5:7b
 ```
 
+Copy `.env.example` to `.env`. By default the agent uses `qwen2.5:7b` through Ollama; set `JARVIS_LLM_PROVIDER=openai_compat` and the `JARVIS_*` values to use any OpenAI-compatible API instead.
+
 From the project root:
 
 ```bash
 python scripts/ingest.py              # build the index and print an ingestion report
 python scripts/build_registry.py      # build the project registry (one model call per file)
 python scripts/generate_overview.py   # write docs/sample_vault_overview.md
-python src/interfaces/cli.py          # ask questions, type 'exit' to quit
+python src/interfaces/cli.py          # ask questions (pipeline), type 'exit' to quit
+python src/interfaces/cli.py --agent  # ask questions (agent), shows each tool call
+python scripts/agent_checkpoint.py    # 5 fixed questions through the agent, with a trace
 python eval/run_eval.py               # run the 45-question evaluation
 python -m pytest tests                # unit tests
 ```
+
+To evaluate the agent instead of the pipeline, set `ANSWER_MODE = "agent"` at the top of `eval/run_eval.py`.
 
 The code talks to Ollama at `http://127.0.0.1:11434` directly, so an `OLLAMA_HOST=0.0.0.0` setting (used for Docker) doesn't break it.
 
@@ -168,13 +200,14 @@ The code talks to Ollama at `http://127.0.0.1:11434` directly, so an `OLLAMA_HOS
 data/sample-vault/   fictional test corpus, safe to share
 docs/                generated project overview
 eval/                questions, evaluation runner, results, failure log
-scripts/             rebuild the index, the registry and the overview
+scripts/             rebuild the index, the registry and the overview; agent checkpoint
 src/ingest/          loading, dating, deduplication, grouping, chunking
 src/retrieval/       vector store, BM25, hybrid search, version-aware ranking
 src/registry/        project registry: extraction, merging, lookups
+src/agent/           agent tools, prompt, and the agent loop with citation checks
 src/router/          question classifier
-src/interfaces/      command-line interface
-tests/               unit tests for ingestion, retrieval and the registry
+src/interfaces/      command-line interface (pipeline and agent)
+tests/               unit tests for ingestion, retrieval, the registry and the agent
 ```
 
 ---
@@ -182,18 +215,3 @@ tests/               unit tests for ingestion, retrieval and the registry
 ## Privacy
 
 The sample vault is fictional, so the project can be tried and evaluated in public. Real personal notes are only ever used locally, stay out of the repository, and are embedded with a local model.
-
----
-
-## Status
-
-- [x] Sample vault and 45-question evaluation set
-- [x] Loading and heading-aware chunking
-- [x] Baseline retrieval, command-line interface, evaluation harness
-- [x] Deduplication, version dating, document grouping
-- [x] Hybrid search and version-aware retrieval
-- [x] Structured project registry for status questions
-- [x] Noise measurement across repeated runs
-- [ ] LLM-judge scoring
-- [ ] Agent with tools, MCP server
-- [ ] Live demo
