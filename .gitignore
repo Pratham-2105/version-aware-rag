@@ -8,6 +8,7 @@ env/
 
 # User data (never commit personal files)
 data/user-vault/
+data/registry/
 
 # Vector store (regenerated from ingestion)
 data/chroma/

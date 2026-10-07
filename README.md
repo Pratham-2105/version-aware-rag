@@ -4,7 +4,7 @@
 
 Notes, plans and project files rarely stay in one clean version. They get duplicated, backed up, rewritten, and quietly corrected by newer files while the old ones stay around. A standard RAG pipeline doesn't know any of this. It retrieves whatever text sounds closest to the question, and when that text comes from an outdated version, the model gives a confident, wrong answer.
 
-This project measures that problem on a fixed set of questions and then fixes it one stage at a time: deduplication, grouping files into versions, hybrid search, and version-aware retrieval. Every number below comes from `eval/run_eval.py`, and the full history of what went wrong is in [`eval/failure_log.md`](eval/failure_log.md).
+This project measures that problem on a fixed set of questions and then fixes it one stage at a time: deduplication, grouping files into versions, hybrid search, version-aware retrieval, and a structured project registry. Every number below comes from `eval/run_eval.py` or a hand check, and the full history of what went wrong is in [`eval/failure_log.md`](eval/failure_log.md).
 
 ---
 
@@ -35,7 +35,8 @@ Ask the baseline system *"What is Arjun's current Codeforces rating?"* and it re
 | + Deduplication and version grouping | 76.9% | 60.0% | 66.7% | 100% |
 | + Hybrid search (BM25 + dense) | 89.7% | 75.6% | 55.6% | 100% |
 | **+ Version-aware retrieval** | **92.3%** | **80.0%** | **88.9%** | 83.3% |
-| + Structured project registry | — | — | — | — |
+
+The project registry (below) doesn't change these numbers, since project status questions were already 5/5. It is checked separately.
 
 All runs use the same local setup: `qwen2.5:7b` through Ollama at temperature 0, `nomic-embed-text` embeddings, top 5 chunks, and a Chroma vector store. The model never changes between stages, so improvements come from retrieval, not from a better model.
 
@@ -66,6 +67,10 @@ All runs use the same local setup: `qwen2.5:7b` through Ollama at temperature 0,
 
 Current-state accuracy went from 55.6% to 88.9%, and the rating question is now answered correctly by design rather than by luck.
 
+**Project registry.** Questions like "which projects are paused?" shouldn't depend on which chunks happen to be retrieved, or on a model that can answer differently between runs. So during indexing, the model reads each project file and handover once and fills in a fixed form for every project: name, status, reason and key result. Code then merges these into one record per project, keeping the newest version, the same rule retrieval uses. Status questions can now read from this small table and get the same answer every time. It also produces a one-page [project overview](docs/sample_vault_overview.md).
+
+Checked by hand: all 5 statuses and key results are correct. The model was reliable when picking from a fixed list (status) and unreliable when writing free text: it wrote "N/A", repeated itself, or copied the status as the reason. So code checks every field before it is saved.
+
 ### Honest limits
 
 - **The set is small.** One question moves the overall score by 2.2 points and a category score by up to 20. Read small differences with caution.
@@ -73,6 +78,7 @@ Current-state accuracy went from 55.6% to 88.9%, and the rating question is now 
 - **Key-fact scoring is imperfect.** An answer counts as correct if it contains every expected key fact. A manual review of one run found one wrong answer scored as correct and one correct answer scored as wrong. An LLM judge, spot-checked by hand, is planned as a second scorer.
 - **The remaining failures are mostly the model, not retrieval.** For both of the remaining "change over time" failures, every relevant version is now retrieved and shown in date order, and the 7B model still mixes up which source said what. Running the same evaluation with a stronger model is planned.
 - **The refusal drop (6/6 → 5/6)** appeared in the seeded run on a question whose retrieval did not change. It is logged as a model-variance case, not a retrieval change.
+- **The registry's reasons are partial.** Only 2 of 5 projects have a real stated reason; the other three are finished or active projects with no reason in the notes, and the model fills in something anyway.
 
 ---
 
@@ -95,6 +101,13 @@ INDEXING  (python scripts/ingest.py)
      ├─ split into chunks     by markdown headings
      └─ store in Chroma       with source, date, family and is_latest
 
+PROJECT REGISTRY  (python scripts/build_registry.py)
+
+  project files + handovers
+     ├─ read each file once   the model fills a fixed form per project
+     ├─ check every field     code rejects "N/A", metrics without numbers, etc.
+     └─ merge                 one record per project, newest version wins
+
 QUESTION TIME  (cli.py, run_eval.py)
 
   question
@@ -115,6 +128,7 @@ A few decisions worth explaining:
 - **Search results are merged by rank, not score.** Keyword scores and embedding distances are on different scales. Reciprocal Rank Fusion avoids normalising them.
 - **Weak dates are hidden from the model.** Files dated only by modified time show as "undated", because a copy date would make an old file look like the newest one.
 - **The question classifier is rule-based for now.** It is fast, free, testable, and routes 12 of the 15 time-sensitive questions correctly. A model-based router is planned.
+- **The model reads, code decides.** In the registry, the model only extracts what each file says. Dates, sources and which version wins are handled by code, so they can't be invented.
 
 ---
 
@@ -136,10 +150,12 @@ ollama pull qwen2.5:7b
 From the project root:
 
 ```bash
-python scripts/ingest.py         # build the index and print an ingestion report
-python src/interfaces/cli.py     # ask questions, type 'exit' to quit
-python eval/run_eval.py          # run the 45-question evaluation
-python -m pytest tests           # unit tests
+python scripts/ingest.py              # build the index and print an ingestion report
+python scripts/build_registry.py      # build the project registry (one model call per file)
+python scripts/generate_overview.py   # write docs/sample_vault_overview.md
+python src/interfaces/cli.py          # ask questions, type 'exit' to quit
+python eval/run_eval.py               # run the 45-question evaluation
+python -m pytest tests                # unit tests
 ```
 
 The code talks to Ollama at `http://127.0.0.1:11434` directly, so an `OLLAMA_HOST=0.0.0.0` setting (used for Docker) doesn't break it.
@@ -150,13 +166,15 @@ The code talks to Ollama at `http://127.0.0.1:11434` directly, so an `OLLAMA_HOS
 
 ```
 data/sample-vault/   fictional test corpus, safe to share
+docs/                generated project overview
 eval/                questions, evaluation runner, results, failure log
-scripts/             ingest.py rebuilds the index
+scripts/             rebuild the index, the registry and the overview
 src/ingest/          loading, dating, deduplication, grouping, chunking
 src/retrieval/       vector store, BM25, hybrid search, version-aware ranking
+src/registry/        project registry: extraction, merging, lookups
 src/router/          question classifier
 src/interfaces/      command-line interface
-tests/               unit tests for every ingestion and retrieval step
+tests/               unit tests for ingestion, retrieval and the registry
 ```
 
 ---
@@ -174,6 +192,7 @@ The sample vault is fictional, so the project can be tried and evaluated in publ
 - [x] Baseline retrieval, command-line interface, evaluation harness
 - [x] Deduplication, version dating, document grouping
 - [x] Hybrid search and version-aware retrieval
+- [x] Structured project registry for status questions
 - [ ] Noise measurement across repeated runs, LLM-judge scoring
-- [ ] Structured project registry for status questions
 - [ ] Agent with tools, MCP server
+- [ ] Live demo

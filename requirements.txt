@@ -45,6 +45,7 @@ langchain-chroma==1.1.0
 langchain-classic==1.0.8
 langchain-community==0.4.2
 langchain-core==1.6.6
+langchain-ollama==1.1.0
 langchain-protocol==0.0.19
 langchain-text-splitters==1.1.2
 langgraph==1.2.12

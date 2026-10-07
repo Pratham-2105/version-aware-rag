@@ -136,10 +136,34 @@ Change: Ollama options now `{"temperature": 0, "seed": 42}`.
 
 ---
 
-## Open items
+## Stage 5 — project registry
 
-1. **Noise measurement.** Run the identical seeded config twice and compare failed IDs. If they differ, report each stage as the mean of three runs.
-2. **LLM-judge scoring** alongside key facts, spot-checked by hand.
-3. **Stronger-model run** on the final Stage 4 config to separate retrieval failures from model failures (Q20, Q21, Q30).
-4. **Classifier misses** (Q14, Q18, Q43) go to the Stage 6.5 model-based router.
-5. **Chronicle grouping false positive** needs a per-folder `versioned: false` setting.
+Not part of the 45-question eval. Checked by hand against the vault files.
+
+Setup: qwen2.5:7b reads each of the 9 files in `projects/` and `handovers/` once and fills in a
+fixed form per project (name, status, reason, key result). Code merges these into one record
+per project, newest version wins.
+
+**Result (5 projects):** status 5/5, key result 5/5, status-change dates 4/5, reason 2/5.
+
+- **Build hung for 5+ minutes on `pixelnet_handover.md`.** The model kept repeating the same
+  list of techniques forever. Fixed by capping output length and limiting the list to 8 items.
+- **"N/A" instead of an empty field.** The model ignored the instruction. Left alone, an "N/A"
+  from a newer file would have replaced PixelNet's 91.3%. Code now treats placeholders as empty.
+- **Names with subtitles** ("DataLens — CSV Analysis Tool") split one project into two.
+  Code now strips the subtitle.
+- **A feature saved as a metric** (StudyBuddy's "real-time chat"). A key result must now
+  contain a number.
+- **Reason filled with the status word ("PAUSED") or a project description.** Partly fixed:
+  QubitML and StudyBuddy now show their real reasons. The other three are done/active projects
+  with no stated reason, and the model still writes something.
+- **Two files with the same date** were decided by alphabetical order. Now an explicit rule:
+  the project's own file wins.
+
+**Still open**
+- QubitML's pause shows 30 Sep in the overview (file modified date) instead of 1 Oct.
+- June PixelNet read as "planned" from "very early stage". Borderline wording.
+- The October handoff extraction skipped StudyBuddy, so its date shows August. Status is still correct.
+
+**Takeaway:** fields where the model picks from a fixed list (status) were right from the first
+run. Free-text fields needed checking in code.
