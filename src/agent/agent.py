@@ -16,7 +16,7 @@ from langchain.agents import create_agent
 from langchain_core.messages import AIMessage, ToolMessage
 from langgraph.errors import GraphRecursionError
 
-from src.agent.prompts import AGENT_SYSTEM_PROMPT, REFUSAL
+from src.agent.prompts import AGENT_SYSTEM_PROMPT, REFUSAL, SEARCH_NUDGE
 from src.agent.tools import TOOLS
 
 # Each model call and each tool execution is one graph step.
@@ -28,6 +28,8 @@ ENFORCE_CITATIONS = True
 
 # No spaces or brackets in the class, so "[a/b.md]" and "(b.md)" both yield "b.md".
 PATH_RE = re.compile(r"[A-Za-z0-9_\-./]+\.md")
+# Full paths of everything the tools returned (used by the eval's source-hit metric).
+SOURCE_RE = re.compile(r"SOURCE: ([A-Za-z0-9_\-./]+\.md)")
 
 
 def get_model():
@@ -92,10 +94,15 @@ def is_refusal(text):
     return REFUSAL.lower().rstrip(".") in text.lower()
 
 
+def _used_tools(messages):
+    return any(isinstance(m, AIMessage) and m.tool_calls for m in messages)
+
+
 def judge(draft, tool_calls, tool_text):
     """Decide what the user sees. Returns (status, final_answer)."""
     if is_refusal(draft):
-        return "refused", draft
+        # A refusal without searching is right only by luck: flag it, keep the answer.
+        return ("refused" if tool_calls else "refused_no_search"), draft
     if not tool_calls:
         status = "no_tool"            # answered from its own knowledge
     else:
@@ -114,19 +121,30 @@ def judge(draft, tool_calls, tool_text):
 # ---------- one question in, answer + trace out ----------
 
 def ask(agent, question):
-    """Run one question through the agent (no conversation memory yet — Stage 6.5)."""
+    """Run one question through the agent (no conversation memory yet — Stage 6.5).
+
+    If the model refuses without having called any tool, it gets ONE follow-up
+    message telling it to search first. Code enforces rule 1; the prompt alone didn't.
+    """
+    config = {"recursion_limit": MAX_STEPS}
+    retried = False
     try:
-        result = agent.invoke(
-            {"messages": [{"role": "user", "content": question}]},
-            config={"recursion_limit": MAX_STEPS},
-        )
+        messages = agent.invoke(
+            {"messages": [{"role": "user", "content": question}]}, config=config
+        )["messages"]
+        if is_refusal(messages[-1].text) and not _used_tools(messages):
+            retried = True
+            messages = agent.invoke(
+                {"messages": messages + [{"role": "user", "content": SEARCH_NUDGE}]},
+                config=config,
+            )["messages"]
     except GraphRecursionError:
         return {
             "question": question, "answer": REFUSAL, "draft": "", "status": "step_limit",
-            "tool_calls": [], "valid_citations": [], "invented_citations": [],
+            "retried": retried, "tool_calls": [], "retrieved_sources": [],
+            "valid_citations": [], "invented_citations": [],
         }
 
-    messages = result["messages"]
     tool_calls = [
         {"name": c["name"], "args": c["args"]}
         for m in messages if isinstance(m, AIMessage)
@@ -142,7 +160,9 @@ def ask(agent, question):
         "answer": answer,
         "draft": draft,
         "status": status,
+        "retried": retried,
         "tool_calls": tool_calls,
+        "retrieved_sources": sorted(set(SOURCE_RE.findall(tool_text))),
         "valid_citations": cites["valid"],
         "invented_citations": cites["invented"],
     }

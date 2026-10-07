@@ -1,0 +1,107 @@
+{
+  "model": "qwen2.5:7b",
+  "runs": [
+    {
+      "question": "Which projects are paused and why?",
+      "answer": "The project QubitML is currently paused as of 2026-10-01. It was paused because it was considered too theoretical and not directly relevant to internships. The project might be revisited in the 4th year if there is available time. \n\nSOURCE: handovers/arjun_master_handoff_oct2026.md",
+      "draft": "The project QubitML is currently paused as of 2026-10-01. It was paused because it was considered too theoretical and not directly relevant to internships. The project might be revisited in the 4th year if there is available time. \n\nSOURCE: handovers/arjun_master_handoff_oct2026.md",
+      "status": "ok",
+      "tool_calls": [
+        {
+          "name": "list_projects",
+          "args": {
+            "status": "paused"
+          }
+        }
+      ],
+      "valid_citations": [
+        "arjun_master_handoff_oct2026.md"
+      ],
+      "invented_citations": [],
+      "seconds": 4.1,
+      "expected_tool": "list_projects",
+      "expected": "QubitML + its reason"
+    },
+    {
+      "question": "What is Arjun's current Codeforces rating?",
+      "answer": "Arjun's current Codeforces rating is 1550, as mentioned in the latest version of his master handoff document [handovers/arjun_master_handoff_oct2026.md] and his resume [career/resume_v2_oct2026.md].",
+      "draft": "Arjun's current Codeforces rating is 1550, as mentioned in the latest version of his master handoff document [handovers/arjun_master_handoff_oct2026.md] and his resume [career/resume_v2_oct2026.md].",
+      "status": "ok",
+      "tool_calls": [
+        {
+          "name": "search_notes",
+          "args": {
+            "query": "Arjun Codeforces rating",
+            "mode": "current"
+          }
+        }
+      ],
+      "valid_citations": [
+        "arjun_master_handoff_oct2026.md",
+        "resume_v2_oct2026.md"
+      ],
+      "invented_citations": [],
+      "seconds": 3.6,
+      "expected_tool": "search_notes mode=current",
+      "expected": "1550"
+    },
+    {
+      "question": "How did Arjun's Codeforces rating change over time?",
+      "answer": "Arjun's Codeforces rating changed over time as follows:\n\n- Initially, on June 1, 2026, his Codeforces rating was 1420 [handovers/arjun_master_handoff_jun2026.md].\n- By August 1, 2026, it had increased to 1510, hitting his target [handovers/arjun_master_handoff_aug2026.md].\n- In September 2026, it dropped to 1480 due to a bad contest week [handovers/arjun_master_handoff_sep2026.md].\n- Finally, by October 1, 2026, it reached a new personal best of 1550 [handovers/arjun_master_handoff_oct2026.md].\n\nThe most recent update is from October 10, 2026, where his rating was 1550 [handovers/arjun_master_handoff_oct2026.md].",
+      "draft": "Arjun's Codeforces rating changed over time as follows:\n\n- Initially, on June 1, 2026, his Codeforces rating was 1420 [handovers/arjun_master_handoff_jun2026.md].\n- By August 1, 2026, it had increased to 1510, hitting his target [handovers/arjun_master_handoff_aug2026.md].\n- In September 2026, it dropped to 1480 due to a bad contest week [handovers/arjun_master_handoff_sep2026.md].\n- Finally, by October 1, 2026, it reached a new personal best of 1550 [handovers/arjun_master_handoff_oct2026.md].\n\nThe most recent update is from October 10, 2026, where his rating was 1550 [handovers/arjun_master_handoff_oct2026.md].",
+      "status": "ok",
+      "tool_calls": [
+        {
+          "name": "search_notes",
+          "args": {
+            "query": "Arjun Codeforces rating",
+            "mode": "history"
+          }
+        }
+      ],
+      "valid_citations": [
+        "arjun_master_handoff_aug2026.md",
+        "arjun_master_handoff_jun2026.md",
+        "arjun_master_handoff_oct2026.md",
+        "arjun_master_handoff_sep2026.md"
+      ],
+      "invented_citations": [],
+      "seconds": 8.8,
+      "expected_tool": "search_notes mode=history",
+      "expected": "1420 -> 1510 -> 1480 -> 1550, dated"
+    },
+    {
+      "question": "Should Arjun restart QubitML now?",
+      "answer": "According to the notes, QubitML was paused as of October 1, 2026, due to it being too theoretical and having no immediate relevance to Arjun's internship. The project might be revisited in his fourth year if there's time. \n\nSOURCE: handovers/arjun_master_handoff_oct2026.md [handovers/arjun_master_handoff_oct2026.md]",
+      "draft": "According to the notes, QubitML was paused as of October 1, 2026, due to it being too theoretical and having no immediate relevance to Arjun's internship. The project might be revisited in his fourth year if there's time. \n\nSOURCE: handovers/arjun_master_handoff_oct2026.md [handovers/arjun_master_handoff_oct2026.md]",
+      "status": "ok",
+      "tool_calls": [
+        {
+          "name": "get_project_status",
+          "args": {
+            "name": "QubitML"
+          }
+        }
+      ],
+      "valid_citations": [
+        "arjun_master_handoff_oct2026.md"
+      ],
+      "invented_citations": [],
+      "seconds": 4.0,
+      "expected_tool": "get_project_status (+ search_notes)",
+      "expected": "why it was paused + current priorities, cited; no generic advice"
+    },
+    {
+      "question": "What is Arjun's hostel room number?",
+      "answer": "I don't have that information in my sources.",
+      "draft": "I don't have that information in my sources.",
+      "status": "refused",
+      "tool_calls": [],
+      "valid_citations": [],
+      "invented_citations": [],
+      "seconds": 0.5,
+      "expected_tool": "search_notes",
+      "expected": "the refusal sentence"
+    }
+  ]
+}

@@ -63,14 +63,44 @@ def format_hits(results):
     return "\n\n---\n\n".join(blocks)
 
 
+STRONG_DATE_SOURCES = {"filename", "header"}
+
+
+def strong_history(history):
+    """Drop mentions dated only by file mtime: a copy date can't place a change in time.
+    Same rule as search output ('undated'). Falls back to everything if nothing is strong."""
+    strong = [h for h in history if h.get("date_source") in STRONG_DATE_SOURCES]
+    return strong or history
+
+
 def status_changes(history):
-    """[{status, version_date}, ...] -> 'active (2026-06-01) -> paused (2026-10-01)'."""
-    changes, prev = [], None
-    for h in history:
-        if h["status"] != "unclear" and h["status"] != prev:
-            changes.append(f"{h['status']} ({h['version_date']})")
-            prev = h["status"]
-    return " -> ".join(changes)
+    """-> 'active (2026-06-01 to 2026-09-01) -> paused (2026-10-01)'.
+    Each status shows when it was first AND last seen, so 'when did X change'
+    can be answered as 'between the last active date and the first paused date'."""
+    spans = []  # [status, first_date, last_date]
+    for h in strong_history(history):
+        if h["status"] == "unclear":
+            continue
+        if spans and spans[-1][0] == h["status"]:
+            spans[-1][2] = h["version_date"]
+        else:
+            spans.append([h["status"], h["version_date"], h["version_date"]])
+    return " -> ".join(
+        f"{s} ({first})" if first == last else f"{s} ({first} to {last})"
+        for s, first, last in spans
+    )
+
+
+def metric_changes(history):
+    """-> '89.7% (2026-08-01) -> 91.3% (2026-10-01)', or '' if the metric never changed."""
+    values = []
+    for h in strong_history(history):
+        m = h.get("key_metric", "")
+        if m and (not values or values[-1][0] != m):
+            values.append((m, h["version_date"]))
+    if len(values) < 2:
+        return ""
+    return " -> ".join(f"{m} ({d})" for m, d in values)
 
 
 def format_record(r):
@@ -91,6 +121,9 @@ def format_record(r):
         lines.append(f"tech: {', '.join(r['tech'])}")
     if r.get("history"):
         lines.append(f"status history: {status_changes(r['history'])}")
+        metrics = metric_changes(r["history"])
+        if metrics:
+            lines.append(f"key metric history: {metrics}")
     return "\n".join(lines)
 
 
@@ -121,18 +154,22 @@ def search_notes(query: str, mode: Literal["current", "history", "any"] = "any")
 
 @tool
 def get_project_status(name: str) -> str:
-    """Look up ONE project by name in the project registry.
+    """Look up the STATUS of ONE project by its name.
 
     Returns its current status (active / paused / done / abandoned / planned),
-    the reason for that status, next step, key metric, tech and status history,
-    each with the SOURCE file it came from. Use for "is X still going?",
-    "why was X paused?", "what did X achieve?". Any spelling of the name works.
+    the reason, the dates of each status, and its SOURCE files.
+    Use ONLY for: "is X still going?", "why was X paused/abandoned?",
+    "when did X's status change?". name must be a project name.
+    NOT for tech stack details, numbers, people, plans or career: use search_notes.
     """
     try:
         record = registry_status(name, registry=_registry())
         if record is None:
             known = ", ".join(r["name"] for r in _registry().values())
-            return f"No project called '{name}' in the registry. Known projects: {known}."
+            return (
+                f"'{name}' is not a project. Projects: {known}. "
+                "This tool only covers project status. Call search_notes for this question."
+            )
         return format_record(record)
     except FileNotFoundError:
         return "The project registry has not been built yet. Use search_notes instead."
@@ -142,16 +179,16 @@ def get_project_status(name: str) -> str:
 
 @tool
 def list_projects(
-    status: Optional[Literal["active", "paused", "done", "abandoned", "planned"]] = None,
+    status: Literal["all", "active", "paused", "done", "abandoned", "planned"] = "all",
 ) -> str:
-    """List the user's projects from the project registry.
+    """List the user's projects by STATUS.
 
-    status: only projects with this current status, or leave empty for ALL projects.
-    Use for "which projects are paused?", "what's done?", "list all my projects".
-    Each project comes with its reason, dates and SOURCE files.
+    status: "all" for every project, or one status to filter by.
+    Use ONLY for: "which projects are paused?", "what's done?", "list all projects
+    and their statuses". NOT for "which projects use X" or other details: use search_notes.
     """
     try:
-        rows = registry_list(status, registry=_registry())
+        rows = registry_list(None if status == "all" else status, registry=_registry())
         if not rows:
             return f"No projects with status '{status}' in the registry."
         return "\n\n".join(format_record(r) for r in rows)
