@@ -90,6 +90,7 @@ def answer_question(collection, question: str) -> str:
             {"role": "system", "content": prompt_with_context},
             {"role": "user", "content": question},
         ],
+        options={"temperature": 0, "seed": 42},
     )
 
     output_answer = response["message"]["content"]
