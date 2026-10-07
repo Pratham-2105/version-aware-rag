@@ -12,7 +12,7 @@ from chromadb.utils.embedding_functions.ollama_embedding_function import (
 
 from src.interfaces.cli import answer_question
 
-STAGE_NAME = "stage3_dedup_grouping"
+STAGE_NAME = "stage4a_hybrid"
 LLM_MODEL = "qwen2.5:7b"
 EMBED_MODEL = "nomic-embed-text"
 RESULTS_DIR = Path("eval/results")

@@ -52,3 +52,15 @@ Note: the observations for IDs 3 and 5 come from debug runs on the same pipeline
 - Grouping false positive: chronicle_july2026 + chronicle_sep2026 grouped as one family (diary entries, not versions). Harmless only if "latest wins" is restricted to current-state questions.
 
 **Unit-test note:** near-duplicate detection is unit-tested only; both sample-vault duplicates were exact after normalization.
+
+## Stage 4A — hybrid BM25 + dense, RRF (stage4a_hybrid_20261007_153907.json)
+
+**Fixed (9):** 3, 5, 11, 25, 29, 33, 41, 42, 44. **Regressed (2):** 8, 12. **Still failing:** 11.
+
+- **Q8 (current CF rating) — REGRESSED.** Query terms "cf" and "rating" appear in all four handoffs; BM25 promotes them all and older versions re-enter top 5. Confirms the Stage 3 fix was incidental. Fix: Stage 4B `is_latest` filter for current-state questions.
+- **Q5 (DataLens deployment) — fixed by recall, not versioning.** The correct chunk now reaches top 5 and the LLM chose it. Fragile until 4B.
+- **Q12 — regressed; check whether it is a weak key_fact ("ml") scoring artifact or a real retrieval change.**
+- **Historical (50% answer, 100% source):** right files retrieved, wrong answers. The LLM cannot order versions because `version_date` is not shown in context. Fix: 4B format_context change.
+- **Cross-document:** 16.7% → 66.7%; named-entity recall was the bottleneck.
+
+**Bug found while building:** BM25 negative IDF (terms in more than half the corpus) made every score negative; a `score <= 0` cutoff silently returned zero BM25 results, which would degrade hybrid retrieval to dense-only without any error. Fixed by using token overlap, not score sign, as the candidate condition. Caught by unit test `test_bm25_where_filter`.
