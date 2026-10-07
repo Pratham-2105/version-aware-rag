@@ -8,7 +8,11 @@ from ollama import Client
 from src.ingest.pipeline import run_ingestion
 from src.retrieval.hybrid import HybridRetriever
 from src.retrieval.vector_store import build_vectorstore, query_vectorstore
-from src.retrieval.version_ranker import order_for_context, version_filter
+from src.retrieval.version_ranker import (
+    expand_versions,
+    order_for_context,
+    version_filter,
+)
 from src.router.classifier import classify_intent
 
 RETRIEVAL_MODE = "hybrid"
@@ -25,9 +29,12 @@ def get_retriever(collection):
 
 def retrieve(collection, question, top_k=5):
     intent = classify_intent(question)
-    results = get_retriever(collection).search(
+    retriever = get_retriever(collection)
+    results = retriever.search(
         question, top_k=top_k, where=version_filter(intent), mode=RETRIEVAL_MODE
     )
+    if intent == "historical":
+        results = expand_versions(results, retriever.bm25, question)
     return order_for_context(results, intent)
 
 
