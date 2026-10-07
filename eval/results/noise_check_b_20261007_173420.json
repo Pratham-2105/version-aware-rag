@@ -1,0 +1,1109 @@
+{
+  "summary": {
+    "stage": "noise_check_b",
+    "llm_model": "qwen2.5:7b",
+    "embed_model": "nomic-embed-text",
+    "top_k": 5,
+    "run_at": "2026-10-07T17:34:20",
+    "source_hit_rate": 92.3,
+    "answer_correctness": 82.2,
+    "refusal_accuracy": 100.0,
+    "temporal_correctness": 88.9,
+    "per_category": {
+      "simple_lookup": {
+        "answer_correctness": 76.9,
+        "source_hit_rate": 100.0,
+        "n": 13
+      },
+      "current_state_temporal": {
+        "answer_correctness": 88.9,
+        "source_hit_rate": 88.9,
+        "n": 9
+      },
+      "historical_change": {
+        "answer_correctness": 66.7,
+        "source_hit_rate": 100.0,
+        "n": 6
+      },
+      "status_aggregation": {
+        "answer_correctness": 100.0,
+        "source_hit_rate": 100.0,
+        "n": 5
+      },
+      "cross_document": {
+        "answer_correctness": 66.7,
+        "source_hit_rate": 66.7,
+        "n": 6
+      },
+      "should_refuse": {
+        "answer_correctness": 100.0,
+        "source_hit_rate": null,
+        "n": 6
+      }
+    }
+  },
+  "results": [
+    {
+      "id": 1,
+      "category": "simple_lookup",
+      "question": "What accuracy did PixelNet achieve on CIFAR-10?",
+      "expected_answer": "91.3% test accuracy on CIFAR-10.",
+      "key_facts": [
+        "91.3"
+      ],
+      "actual_answer": "According to the sources, PixelNet achieved a final test accuracy of 91.3% on CIFAR-10. This information is first mentioned in [Source 1] and is confirmed in [Source 3] and [Source 5], which provide the most recent version of this information as of October 2026. Initially, the accuracy was reported as 89.7% in [Source 2], but this was before the addition of proper batch normalization and the fix for the learning rate decay bug, as detailed in [Source 4].",
+      "expected_sources": [
+        "projects/pixelnet_handover.md",
+        "handovers/arjun_master_handoff_sep2026.md",
+        "handovers/arjun_master_handoff_oct2026.md"
+      ],
+      "retrieved_sources": [
+        "projects/pixelnet_handover.md",
+        "handovers/arjun_master_handoff_aug2026.md",
+        "handovers/arjun_master_handoff_oct2026.md",
+        "handovers/arjun_master_handoff_sep2026.md",
+        "career/resume_v2_oct2026.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 2,
+      "category": "simple_lookup",
+      "question": "What ML framework did PixelNet use?",
+      "expected_answer": "None. It was built entirely from scratch in NumPy — no PyTorch, no TensorFlow, no autograd library.",
+      "key_facts": [
+        "numpy"
+      ],
+      "actual_answer": "According to the sources, PixelNet was built entirely from scratch using NumPy. There is no mention of PixelNet using an existing ML framework like PyTorch or TensorFlow.",
+      "expected_sources": [
+        "projects/pixelnet_handover.md"
+      ],
+      "retrieved_sources": [
+        "handovers/arjun_master_handoff_aug2026.md",
+        "handovers/arjun_master_handoff_aug2026.md",
+        "handovers/arjun_master_handoff_sep2026.md",
+        "projects/pixelnet_handover.md",
+        "projects/pixelnet_handover.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 3,
+      "category": "simple_lookup",
+      "question": "What optimizer does PixelNet use?",
+      "expected_answer": "SGD with momentum (0.9) and learning rate decay.",
+      "key_facts": [
+        "sgd",
+        "momentum"
+      ],
+      "actual_answer": "According to [Source 2], PixelNet uses stochastic gradient descent (SGD) with momentum (0.9) and learning rate decay as its optimizer.",
+      "expected_sources": [
+        "projects/pixelnet_handover.md"
+      ],
+      "retrieved_sources": [
+        "projects/pixelnet_handover.md",
+        "projects/pixelnet_handover.md",
+        "personal/who_am_i.md",
+        "handovers/arjun_master_handoff_sep2026.md",
+        "handovers/arjun_master_handoff_aug2026.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 4,
+      "category": "simple_lookup",
+      "question": "What was StudyBuddy built with?",
+      "expected_answer": "React, Node.js, Express, MongoDB, and Socket.io (MERN stack with real-time chat).",
+      "key_facts": [
+        "react",
+        "node",
+        "express",
+        "mongodb",
+        "socket.io"
+      ],
+      "actual_answer": "StudyBuddy was built with a MERN stack, which includes React for the frontend, Node.js and Express for the backend, MongoDB for the database, and Socket.io for real-time chat functionality. According to [Source 1].",
+      "expected_sources": [
+        "projects/studybuddy_handover.md"
+      ],
+      "retrieved_sources": [
+        "career/resume_v1_aug2026.md",
+        "projects/studybuddy_handover.md",
+        "personal/who_am_i.md",
+        "projects/studybuddy_handover.md",
+        "handovers/arjun_master_handoff_oct2026.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 5,
+      "category": "simple_lookup",
+      "question": "Where is DataLens deployed?",
+      "expected_answer": "Railway.",
+      "key_facts": [
+        "railway"
+      ],
+      "actual_answer": "According to [Source 4], DataLens is deployed on Railway.",
+      "expected_sources": [
+        "projects/datalens_handover.md"
+      ],
+      "retrieved_sources": [
+        "career/career_plan_oct2026.md",
+        "projects/datalens_handover.md",
+        "handovers/arjun_master_handoff_sep2026.md",
+        "projects/datalens_handover.md",
+        "handovers/arjun_master_handoff_aug2026.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 6,
+      "category": "simple_lookup",
+      "question": "Who supervises the QubitML project?",
+      "expected_answer": "Prof. Sharma.",
+      "key_facts": [
+        "sharma"
+      ],
+      "actual_answer": "The QubitML project is supervised by Prof. Sharma according to [Source 1].",
+      "expected_sources": [
+        "projects/qubitml_handover.md",
+        "college/prof_sharma_notes.md"
+      ],
+      "retrieved_sources": [
+        "college/prof_sharma_notes.md",
+        "projects/qubitml_handover.md",
+        "projects/qubitml_handover.md",
+        "personal/who_am_i.md",
+        "handovers/arjun_master_handoff_oct2026.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 7,
+      "category": "simple_lookup",
+      "question": "How many parameters does PixelNet have?",
+      "expected_answer": "Approximately 1.8 million parameters.",
+      "key_facts": [
+        "1.8"
+      ],
+      "actual_answer": "I don't have that information in my sources. The sources provided focus on the overall performance and development of PixelNet but do not specify the number of parameters it has.",
+      "expected_sources": [
+        "projects/pixelnet_handover.md"
+      ],
+      "retrieved_sources": [
+        "projects/pixelnet_handover.md",
+        "personal/chronicle_sep2026.md",
+        "handovers/arjun_master_handoff_sep2026.md",
+        "career/career_plan_oct2026.md",
+        "personal/who_am_i.md"
+      ],
+      "source_hit": true,
+      "answer_correct": false
+    },
+    {
+      "id": 8,
+      "category": "current_state_temporal",
+      "question": "What is Arjun's current Codeforces rating?",
+      "expected_answer": "1550 (as of October 2026, new personal best).",
+      "key_facts": [
+        "1550"
+      ],
+      "actual_answer": "According to [Source 3], Arjun Mehta's current Codeforces rating is 1550.",
+      "expected_sources": [
+        "handovers/arjun_master_handoff_oct2026.md",
+        "dsa/contest_log.md"
+      ],
+      "retrieved_sources": [
+        "handovers/arjun_master_handoff_oct2026.md",
+        "dsa/contest_log.md",
+        "career/resume_v2_oct2026.md",
+        "dsa/contest_log.md",
+        "personal/ai_self_analysis.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 9,
+      "category": "current_state_temporal",
+      "question": "What is the current status of StudyBuddy?",
+      "expected_answer": "Abandoned. Do not reopen.",
+      "key_facts": [
+        "abandoned"
+      ],
+      "actual_answer": "The current status of StudyBuddy is ABANDONED (Do not reopen) as of October 1, 2026, according to the latest version of the handoff document [Source 4]. This indicates that the project was completed and is not to be reopened.",
+      "expected_sources": [
+        "projects/studybuddy_handover.md",
+        "handovers/arjun_master_handoff_sep2026.md"
+      ],
+      "retrieved_sources": [
+        "projects/studybuddy_handover.md",
+        "projects/studybuddy_handover.md",
+        "projects/studybuddy_handover.md",
+        "handovers/arjun_master_handoff_oct2026.md",
+        "projects/noteflow_handover.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 10,
+      "category": "current_state_temporal",
+      "question": "What is the current status of QubitML?",
+      "expected_answer": "Paused as of October 2026. Arjun told Prof. Sharma he needs to pause for internship prep. Might revisit in 4th year.",
+      "key_facts": [
+        "paused"
+      ],
+      "actual_answer": "The current status of QubitML is PAUSED. According to the latest information from [Source 4], QubitML was a research project with Prof. Sharma exploring the potential of quantum computing concepts in ML hyperparameter optimization. However, Arjun Mehta has paused the project as it is too theoretical and lacks practical relevance for his career goals. He mentioned that he might revisit it in his fourth year, but for now, it is paused.",
+      "expected_sources": [
+        "handovers/arjun_master_handoff_oct2026.md",
+        "projects/qubitml_handover.md"
+      ],
+      "retrieved_sources": [
+        "projects/qubitml_handover.md",
+        "projects/qubitml_handover.md",
+        "handovers/arjun_master_handoff_oct2026.md",
+        "handovers/arjun_master_handoff_oct2026.md",
+        "personal/who_am_i.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 11,
+      "category": "current_state_temporal",
+      "question": "What is Arjun's current career goal?",
+      "expected_answer": "ML/AI backend internship by January 2027, paid, at a startup doing AI/LLM work. Specifically interested in RAG, retrieval systems, and agents.",
+      "key_facts": [
+        "backend"
+      ],
+      "actual_answer": "Arjun's current career goal is to secure an ML/AI backend internship by January 2027, and he is open to remote work options. This goal is documented in his career plan from October 2026 [Source 2].",
+      "expected_sources": [
+        "handovers/arjun_master_handoff_oct2026.md",
+        "career/career_plan_oct2026.md"
+      ],
+      "retrieved_sources": [
+        "personal/ai_self_analysis.md",
+        "career/career_plan_oct2026.md",
+        "career/resume_v2_oct2026.md",
+        "career/career_plan_oct2026.md",
+        "personal/ai_self_analysis.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 12,
+      "category": "current_state_temporal",
+      "question": "Is Arjun still pursuing web development?",
+      "expected_answer": "No. He pivoted from web dev to ML/AI backend in July-August 2026. The web dev phase is over — he explicitly says he doesn't care about it anymore.",
+      "key_facts": [
+        "ml"
+      ],
+      "actual_answer": "No, Arjun is not pursuing web development anymore. According to [Source 3] and [Source 2], Arjun pivoted from web development to ML/AI backend in July-August 2026. [Source 3] states that the plan from June to focus on MERN projects and a frontend internship is now completely obsolete. [Source 2] also mentions that he abandoned the StudyBuddy project, a MERN app, because he had zero motivation to maintain it after pivoting to ML.",
+      "expected_sources": [
+        "handovers/arjun_master_handoff_aug2026.md",
+        "handovers/arjun_master_handoff_oct2026.md"
+      ],
+      "retrieved_sources": [
+        "personal/ai_self_analysis.md",
+        "projects/studybuddy_handover.md",
+        "career/career_plan_oct2026.md",
+        "career/resume_v2_oct2026.md",
+        "college/sem5_subjects.md"
+      ],
+      "source_hit": false,
+      "answer_correct": true
+    },
+    {
+      "id": 13,
+      "category": "current_state_temporal",
+      "question": "What is Arjun currently building?",
+      "expected_answer": "NoteFlow — an AI-powered note-taking app using FastAPI, LangChain, and Chroma. About 40% done as of October 2026.",
+      "key_facts": [
+        "noteflow"
+      ],
+      "actual_answer": "Arjun is currently building NoteFlow, an AI-powered note-taking app. According to the latest information in [Source 2], he is about 40% through the backend development using FastAPI, LangChain, and Chroma.",
+      "expected_sources": [
+        "handovers/arjun_master_handoff_oct2026.md",
+        "projects/noteflow_handover.md"
+      ],
+      "retrieved_sources": [
+        "personal/ai_self_analysis.md",
+        "handovers/arjun_master_handoff_oct2026.md",
+        "personal/who_am_i.md",
+        "career/career_plan_oct2026.md",
+        "career/resume_v2_oct2026.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 14,
+      "category": "current_state_temporal",
+      "question": "How many LeetCode problems has Arjun solved?",
+      "expected_answer": "245.",
+      "key_facts": [
+        "245"
+      ],
+      "actual_answer": "According to the most recent sources, Arjun Mehta has solved 245 LeetCode problems. This information is from his resume version dated October 2026 [Source 2] and his master handoff document also dated October 2026 [Source 3].",
+      "expected_sources": [
+        "handovers/arjun_master_handoff_sep2026.md",
+        "handovers/arjun_master_handoff_oct2026.md"
+      ],
+      "retrieved_sources": [
+        "career/resume_v1_aug2026.md",
+        "career/resume_v2_oct2026.md",
+        "handovers/arjun_master_handoff_oct2026.md",
+        "handovers/arjun_master_handoff_aug2026.md",
+        "dsa/graph_problems.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 15,
+      "category": "current_state_temporal",
+      "question": "What is Arjun's current tech stack?",
+      "expected_answer": "Python, NumPy, FastAPI, LangChain (learning), Chroma, PyTorch (basic), Docker.",
+      "key_facts": [
+        "python",
+        "fastapi",
+        "langchain"
+      ],
+      "actual_answer": "According to the latest version of [Source 2], Arjun Mehta's current tech stack for his project NoteFlow includes FastAPI, LangChain, and Chroma.",
+      "expected_sources": [
+        "handovers/arjun_master_handoff_oct2026.md"
+      ],
+      "retrieved_sources": [
+        "career/resume_v2_oct2026.md",
+        "handovers/arjun_master_handoff_oct2026.md",
+        "handovers/arjun_master_handoff_oct2026.md",
+        "personal/ai_self_analysis.md",
+        "career/resume_v2_oct2026.md"
+      ],
+      "source_hit": true,
+      "answer_correct": false
+    },
+    {
+      "id": 16,
+      "category": "historical_change",
+      "question": "How did Arjun's Codeforces rating change over time?",
+      "expected_answer": "1420 (Jun) → 1480 (Aug 10 contest) → 1510 (Sep 7 contest) → 1480 (Sep 21 contest, dropped) → 1550 (Oct 5 contest, new personal best).",
+      "key_facts": [
+        "1420",
+        "1510",
+        "1480",
+        "1550"
+      ],
+      "actual_answer": "Arjun's Codeforces rating changed as follows over time:\n\n- As of June 15, 2026, his Codeforces rating was 1420 [Source 1].\n- By August 18, 2026, his rating had increased to 1510, hitting his target [Source 2].\n- However, after the CF Round #921 (Div 2) on September 21, 2026, his rating dropped to 1480, a decrease of 30 points [Source 4].\n- By October 10, 2026, his Codeforces rating had improved to a new personal best of 1550 [Source 5].\n\nSo, his rating increased from 1420 to 1510, then dropped to 1480, and finally rose to 1550.",
+      "expected_sources": [
+        "handovers/arjun_master_handoff_jun2026.md",
+        "handovers/arjun_master_handoff_aug2026.md",
+        "handovers/arjun_master_handoff_sep2026.md",
+        "handovers/arjun_master_handoff_oct2026.md",
+        "dsa/contest_log.md"
+      ],
+      "retrieved_sources": [
+        "handovers/arjun_master_handoff_jun2026.md",
+        "handovers/arjun_master_handoff_aug2026.md",
+        "handovers/arjun_master_handoff_sep2026.md",
+        "dsa/contest_log.md",
+        "handovers/arjun_master_handoff_oct2026.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 17,
+      "category": "historical_change",
+      "question": "How did PixelNet's accuracy change during development?",
+      "expected_answer": "Started low, reached 89.7% before batch normalization, then improved to 91.3% after adding proper batch norm and fixing the learning rate decay bug. The October handoff explicitly notes the 89.7% figure from August is outdated.",
+      "key_facts": [
+        "89.7",
+        "91.3",
+        "batch"
+      ],
+      "actual_answer": "PixelNet's accuracy improved from 89.7% to 91.3% after fixing the batch norm computation. According to [Source 7], the pre-batch norm accuracy was 89.7%, and after the fix, the accuracy increased to 91.3%. This information is also confirmed in [Source 8], which clarifies that the August handoff's figure of 89.7% was outdated and the final accuracy is 91.3%.",
+      "expected_sources": [
+        "handovers/arjun_master_handoff_aug2026.md",
+        "handovers/arjun_master_handoff_sep2026.md",
+        "handovers/arjun_master_handoff_oct2026.md",
+        "projects/pixelnet_handover.md"
+      ],
+      "retrieved_sources": [
+        "handovers/arjun_master_handoff_jun2026.md",
+        "personal/chronicle_july2026.md",
+        "handovers/arjun_master_handoff_aug2026.md",
+        "career/resume_v1_aug2026.md",
+        "personal/chronicle_sep2026.md",
+        "handovers/arjun_master_handoff_sep2026.md",
+        "projects/pixelnet_handover.md",
+        "handovers/arjun_master_handoff_oct2026.md",
+        "career/resume_v2_oct2026.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 18,
+      "category": "historical_change",
+      "question": "When was StudyBuddy abandoned and why?",
+      "expected_answer": "Abandoned around July-August 2026 when Arjun pivoted from web dev to ML. Core features were finished but he lost motivation to maintain a MERN app after discovering his interest in ML through PixelNet.",
+      "key_facts": [
+        "ml"
+      ],
+      "actual_answer": "According to [Source 4], StudyBuddy was abandoned in July-August 2026. The reason given was that the developer pivoted from web development to machine learning. They noted that while the core features of the platform worked, they had \"zero motivation to maintain a MERN app\" and had already learned full-stack development from it.",
+      "expected_sources": [
+        "projects/studybuddy_handover.md",
+        "handovers/arjun_master_handoff_aug2026.md"
+      ],
+      "retrieved_sources": [
+        "projects/studybuddy_handover.md",
+        "handovers/arjun_master_handoff_sep2026.md",
+        "handovers/arjun_master_handoff_oct2026.md",
+        "projects/studybuddy_handover.md",
+        "career/resume_v1_aug2026.md"
+      ],
+      "source_hit": true,
+      "answer_correct": false
+    },
+    {
+      "id": 19,
+      "category": "historical_change",
+      "question": "How did Arjun's career direction change from June to October 2026?",
+      "expected_answer": "In June he wanted to be a frontend developer (MERN stack, React/Next.js). By August he was pivoting to ML. By October he identifies as an AI backend engineer focused on RAG, retrieval systems, and agents. The June career plan is completely obsolete.",
+      "key_facts": [
+        "frontend",
+        "backend"
+      ],
+      "actual_answer": "Arjun's career direction changed significantly from June to October 2026. Initially, in June 2026, his goal was to secure a frontend developer internship by December 2026, with a focus on building projects, polishing his resume, and applying to companies that use React/Next.js, preferably in Noida/Delhi but also considering remote options. However, by October 2026, he had pivoted entirely to a career in AI backend engineering. According to the latest version of his career plan, he is now focusing on roles that involve Python, FastAPI, and machine learning, particularly retrieval systems and agents. He is also working on a project called NoteFlow, which integrates FastAPI, LangChain, and a real retrieval problem, indicating a shift from web development to a more specialized role in AI and backend engineering.",
+      "expected_sources": [
+        "career/career_plan_jun2026.md",
+        "career/career_plan_oct2026.md",
+        "handovers/arjun_master_handoff_jun2026.md",
+        "handovers/arjun_master_handoff_oct2026.md"
+      ],
+      "retrieved_sources": [
+        "career/career_plan_jun2026.md",
+        "career/career_plan_jun2026.md",
+        "career/career_plan_jun2026.md",
+        "handovers/arjun_master_handoff_jun2026.md",
+        "handovers/arjun_master_handoff_aug2026.md",
+        "handovers/arjun_master_handoff_sep2026.md",
+        "career/career_plan_oct2026.md",
+        "handovers/arjun_master_handoff_oct2026.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 20,
+      "category": "historical_change",
+      "question": "When did QubitML go from active to paused?",
+      "expected_answer": "Between September and October 2026. The September handoff lists it as ACTIVE. The October handoff (October 10, 2026) says it's PAUSED because it's too theoretical for internship goals.",
+      "key_facts": [
+        "september",
+        "october"
+      ],
+      "actual_answer": "According to the information provided in [Source 4] and [Source 8], QubitML went from being an active project to paused between September 22, 2026, and October 10, 2026. Specifically, [Source 4] lists QubitML as ACTIVE, while [Source 8] lists it as PAUSED. The exact date of the transition is not provided, but it occurred sometime between September 22 and October 10, 2026.",
+      "expected_sources": [
+        "handovers/arjun_master_handoff_sep2026.md",
+        "handovers/arjun_master_handoff_oct2026.md",
+        "projects/qubitml_handover.md"
+      ],
+      "retrieved_sources": [
+        "handovers/arjun_master_handoff_jun2026.md",
+        "handovers/arjun_master_handoff_aug2026.md",
+        "personal/ai_self_analysis.md",
+        "handovers/arjun_master_handoff_sep2026.md",
+        "projects/qubitml_handover.md",
+        "projects/qubitml_handover.md",
+        "college/prof_sharma_notes.md",
+        "handovers/arjun_master_handoff_oct2026.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 21,
+      "category": "historical_change",
+      "question": "How did the resume change from v1 to v2?",
+      "expected_answer": "v1 (Aug) led with StudyBuddy and listed PixelNet as in-progress at 89.7%. Skills were JavaScript-heavy. CF was 1510, LC was 220. v2 (Oct) drops StudyBuddy entirely, leads with PixelNet at 91.3% (done), adds NoteFlow (in progress) and DataLens, shifts skills to Python/AI stack. CF updated to 1550, LC to 245.",
+      "key_facts": [
+        "studybuddy",
+        "91.3",
+        "1550"
+      ],
+      "actual_answer": "The resume changed significantly from version 1 (August 2026) to version 2 (October 2026). According to [Source 6], the new version of the resume includes competitive programming achievements that were not present in the previous version. Specifically, the new resume now lists:\n\n- Codeforces: 1550 (Specialist)\n- LeetCode: 245 problems solved\n\nThese additions reflect a shift in focus to include more technical skills and achievements, which aligns with the career pivot described in [Source 5] from frontend/web development to ML/AI backend development.",
+      "expected_sources": [
+        "career/resume_v1_aug2026.md",
+        "career/resume_v2_oct2026.md"
+      ],
+      "retrieved_sources": [
+        "career/career_plan_jun2026.md",
+        "career/resume_v1_aug2026.md",
+        "personal/ai_self_analysis.md",
+        "projects/qubitml_handover.md",
+        "career/career_plan_oct2026.md",
+        "career/resume_v2_oct2026.md"
+      ],
+      "source_hit": true,
+      "answer_correct": false
+    },
+    {
+      "id": 22,
+      "category": "status_aggregation",
+      "question": "Which projects are currently paused?",
+      "expected_answer": "QubitML (paused October 2026 — too theoretical, no internship relevance).",
+      "key_facts": [
+        "qubitml"
+      ],
+      "actual_answer": "According to [Source 1], the project QubitML is currently paused. Additionally, [Source 3] provides more context, stating that QubitML was paused because the project is too theoretical for Arjun's resume goals and no internship is asking for quantum ML. Arjun plans to revisit it in his fourth year if there's time.",
+      "expected_sources": [
+        "handovers/arjun_master_handoff_oct2026.md",
+        "projects/qubitml_handover.md"
+      ],
+      "retrieved_sources": [
+        "handovers/arjun_master_handoff_oct2026.md",
+        "personal/ai_self_analysis.md",
+        "projects/qubitml_handover.md",
+        "projects/studybuddy_handover.md",
+        "projects/noteflow_handover.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 23,
+      "category": "status_aggregation",
+      "question": "Which projects are done?",
+      "expected_answer": "PixelNet (91.3% CIFAR-10, from-scratch NumPy) and DataLens (FastAPI CSV analysis tool, deployed on Railway).",
+      "key_facts": [
+        "pixelnet",
+        "datalens"
+      ],
+      "actual_answer": "According to the most recent information from [Source 1] (dated October 10, 2026), the projects that are done are:\n\n- PixelNet\n- DataLens\n\nThese projects are marked as \"DONE\" in the project statuses.",
+      "expected_sources": [
+        "handovers/arjun_master_handoff_oct2026.md"
+      ],
+      "retrieved_sources": [
+        "handovers/arjun_master_handoff_oct2026.md",
+        "handovers/arjun_master_handoff_jun2026.md",
+        "handovers/arjun_master_handoff_sep2026.md",
+        "career/career_plan_jun2026.md",
+        "dsa/graph_problems.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 24,
+      "category": "status_aggregation",
+      "question": "Which projects are currently active?",
+      "expected_answer": "NoteFlow — AI-powered note intelligence app, about 40% done.",
+      "key_facts": [
+        "noteflow"
+      ],
+      "actual_answer": "According to the information in [Source 1] and [Source 2], the currently active projects are:\n\n- **NoteFlow**: An AI note-taking app that is actively being built. It is approximately 40% complete as of October 2026. The project uses FastAPI, LangChain, and Chroma. The current progress includes file loaders for md and docx files, basic chunking, a Chroma vector store, dense retrieval, and a CLI chat loop with basic RAG (Retrieval-Augmented Generation).\n\n- **PixelNet**: Although this project is marked as \"DONE\" with a status of 91.3% CIFAR-10 from scratch using NumPy, it is still considered a flagship project, which might imply it is still relevant or in use.\n\n- **DataLens**: This project is also marked as \"DONE\" and has been shipped, so it is not currently active.\n\n- **QubitML**: This project is \"PAUSED\" due to it being too theoretical and having no internship relevance. It might be revisited in the fourth year, but it is not currently active.\n\n- **StudyBuddy**: This project is \"ABANDONED\" and should not be reopened, so it is not currently active.",
+      "expected_sources": [
+        "handovers/arjun_master_handoff_oct2026.md",
+        "projects/noteflow_handover.md"
+      ],
+      "retrieved_sources": [
+        "handovers/arjun_master_handoff_oct2026.md",
+        "projects/noteflow_handover.md",
+        "projects/noteflow_handover.md",
+        "projects/studybuddy_handover.md",
+        "projects/noteflow_handover.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 25,
+      "category": "status_aggregation",
+      "question": "List all of Arjun's projects and their current statuses.",
+      "expected_answer": "PixelNet: DONE | StudyBuddy: ABANDONED | DataLens: DONE | QubitML: PAUSED | NoteFlow: ACTIVE.",
+      "key_facts": [
+        "pixelnet",
+        "studybuddy",
+        "datalens",
+        "qubitml",
+        "noteflow"
+      ],
+      "actual_answer": "Based on the information provided in [Source 1] and [Source 4], here are Arjun's projects and their current statuses:\n\n- **PixelNet**: DONE, 91.3% CIFAR-10, from scratch NumPy. Flagship project.\n- **StudyBuddy**: ABANDONED, MERN app. Completed.\n- **DataLens**: DONE, FastAPI data tool. Shipped.\n- **QubitML**: PAUSED, Was research with Prof. Sharma. Pausing due to it being too theoretical and not relevant for internships. Might revisit in 4th year.\n- **NoteFlow**: ACTIVE, AI note-taking app, FastAPI + LangChain + Chroma. My current main build. ~40% done.",
+      "expected_sources": [
+        "handovers/arjun_master_handoff_oct2026.md"
+      ],
+      "retrieved_sources": [
+        "handovers/arjun_master_handoff_oct2026.md",
+        "career/resume_v2_oct2026.md",
+        "personal/ai_self_analysis.md",
+        "handovers/arjun_master_handoff_oct2026.md",
+        "personal/ai_self_analysis.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 26,
+      "category": "status_aggregation",
+      "question": "Which projects has Arjun abandoned?",
+      "expected_answer": "StudyBuddy (MERN study group app, abandoned when he pivoted from web dev to ML). Marked 'do not reopen.'",
+      "key_facts": [
+        "studybuddy"
+      ],
+      "actual_answer": "According to the latest information from [Source 4] and [Source 5], Arjun has abandoned the StudyBuddy project. It was previously described as a MERN app with core features completed, but he no longer cares about web development in [Source 4]. By [Source 5], the status of StudyBuddy is listed as ABANDONED, and it is noted that he does not want to reopen it.",
+      "expected_sources": [
+        "projects/studybuddy_handover.md",
+        "handovers/arjun_master_handoff_sep2026.md"
+      ],
+      "retrieved_sources": [
+        "projects/studybuddy_handover.md",
+        "career/resume_v1_aug2026.md",
+        "career/resume_v2_oct2026.md",
+        "handovers/arjun_master_handoff_sep2026.md",
+        "handovers/arjun_master_handoff_oct2026.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 27,
+      "category": "cross_document",
+      "question": "Which projects involve Python and machine learning?",
+      "expected_answer": "PixelNet (from-scratch neural net in NumPy), QubitML (quantum-inspired ML optimization in Python), and NoteFlow (uses LangChain for AI-powered retrieval).",
+      "key_facts": [
+        "pixelnet",
+        "qubitml",
+        "noteflow"
+      ],
+      "actual_answer": "Based on the information provided in the sources, the projects that involve Python and machine learning are:\n\n1. **PixelNet**:\n   - **Description**: Built a multi-layer neural network from scratch in NumPy achieving 91.3% test accuracy on CIFAR-10.\n   - **Technologies**: Python, NumPy\n   - **Details**: Implemented forward/backward pass, batch normalization, dropout, and SGD with momentum. No ML frameworks were used.\n\n2. **NoteFlow**:\n   - **Description**: Building a version-aware RAG system that retrieves the correct version of duplicated/superseding documents.\n   - **Technologies**: Python, FastAPI, LangChain, Chroma\n   - **Details**: This project involves machine learning through the use of LangChain and Chroma for natural language processing and information retrieval.\n\n3. **DataLens**:\n   - **Description**: Built and deployed a CSV analysis tool with auto-generated statistics and visualizations.\n   - **Technologies**: Python, FastAPI, pandas, Docker\n   - **Details**: While primarily a data analysis tool, it may involve some machine learning techniques for advanced analytics, but this is not explicitly mentioned in the sources.\n\nThese projects are the ones that involve Python and machine learning according to the latest information provided in the sources.",
+      "expected_sources": [
+        "projects/pixelnet_handover.md",
+        "projects/qubitml_handover.md",
+        "projects/noteflow_handover.md"
+      ],
+      "retrieved_sources": [
+        "college/sem5_subjects.md",
+        "handovers/arjun_master_handoff_sep2026.md",
+        "career/resume_v2_oct2026.md",
+        "handovers/arjun_master_handoff_oct2026.md",
+        "career/resume_v1_aug2026.md"
+      ],
+      "source_hit": false,
+      "answer_correct": false
+    },
+    {
+      "id": 28,
+      "category": "cross_document",
+      "question": "Which projects use FastAPI?",
+      "expected_answer": "DataLens (CSV analysis tool) and NoteFlow (AI note intelligence app).",
+      "key_facts": [
+        "datalens",
+        "noteflow"
+      ],
+      "actual_answer": "According to the sources, the projects that use FastAPI are:\n\n1. DataLens — CSV Analysis Tool (Source 1 and Source 3)\n2. NoteFlow — AI-Powered Note Intelligence (Source 2)\n\nDataLens is mentioned as being in the \"DONE\" status with FastAPI as part of its tech stack (Source 1 and Source 3). NoteFlow is described as being \"ACTIVE\" with FastAPI included in its tech stack as of October 1, 2026 (Source 2).",
+      "expected_sources": [
+        "projects/datalens_handover.md",
+        "projects/noteflow_handover.md"
+      ],
+      "retrieved_sources": [
+        "projects/datalens_handover.md",
+        "projects/noteflow_handover.md",
+        "projects/datalens_handover.md",
+        "career/resume_v2_oct2026.md",
+        "handovers/arjun_master_handoff_aug2026.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 29,
+      "category": "cross_document",
+      "question": "What is Arjun's relationship with Prof. Sharma?",
+      "expected_answer": "Prof. Sharma teaches ML in Semester 5 and supervised the QubitML research project. He has a PhD from IIT Delhi. He's kind and supportive. Arjun paused QubitML in October and told him; Sharma took it well. Arjun wants to maintain the relationship — Sharma is a good reference.",
+      "key_facts": [
+        "qubitml"
+      ],
+      "actual_answer": "Arjun has a significant professional relationship with Prof. Sharma, who teaches ML at Semesters 5 and supervises Arjun's QubitML research. Prof. Sharma is described as kind, supportive, and passionate about the intersection of quantum computing and ML. However, Arjun feels that the QubitML project isn't progressing in a way that aligns with his career goals, as the quantum angle is too theoretical for his resume and potential internship roles. Despite this, Arjun recognizes the importance of maintaining this relationship, as Prof. Sharma is a good reference and person. Arjun had previously informed Prof. Sharma about pausing the QubitML project for internship preparation, and Prof. Sharma responded positively, suggesting they could resume the project when the time is right.",
+      "expected_sources": [
+        "college/prof_sharma_notes.md",
+        "projects/qubitml_handover.md"
+      ],
+      "retrieved_sources": [
+        "personal/ai_self_analysis.md",
+        "personal/ai_self_analysis.md",
+        "college/prof_sharma_notes.md",
+        "personal/ai_self_analysis.md",
+        "handovers/arjun_master_handoff_oct2026.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 30,
+      "category": "simple_lookup",
+      "question": "What DP problems has Arjun already solved?",
+      "expected_answer": "Fibonacci, Climbing Stairs, House Robber I & II, Coin Change I & II, LCS, LIS, Edit Distance, 0/1 Knapsack, Unbounded Knapsack, Partition Equal Subset Sum, Unique Paths, Minimum Path Sum, Word Break.",
+      "key_facts": [
+        "house robber",
+        "coin change",
+        "knapsack",
+        "edit distance"
+      ],
+      "actual_answer": "According to [Source 3], Arjun has been focusing on DP problems, noting that most DP problems are variations of knapsack or longest common subsequence (LCS). He also mentions using a trick of drawing the recursion tree first to identify overlapping subproblems. However, the specific DP problems he has solved are not detailed in the provided sources.\n\n[Source 4] mentions that Arjun solved a DP problem on subsequences in CF Round #923 (Div 2) on October 5, 2026, but it does not specify which exact problem it was.\n\nTherefore, based on the information provided, we can say that Arjun has solved at least one DP problem on subsequences, but the exact problems he has solved are not fully detailed in the sources.",
+      "expected_sources": [
+        "dsa/dp_problems.md"
+      ],
+      "retrieved_sources": [
+        "handovers/arjun_master_handoff_oct2026.md",
+        "handovers/arjun_master_handoff_aug2026.md",
+        "dsa/dp_problems.md",
+        "dsa/contest_log.md",
+        "handovers/arjun_master_handoff_sep2026.md"
+      ],
+      "source_hit": true,
+      "answer_correct": false
+    },
+    {
+      "id": 31,
+      "category": "simple_lookup",
+      "question": "What are Arjun's weakest areas in competitive programming?",
+      "expected_answer": "Constructive algorithms. His contest log shows he solves C problems when they're DP or greedy but fails on graph/constructive problems.",
+      "key_facts": [
+        "constructive"
+      ],
+      "actual_answer": "According to [Source 1], Arjun's weakest area in competitive programming is constructive algorithms. He notes, \"Pattern: I solve C when it's DP or greedy, fail when it's graph/constructive\" and \"Need to practice constructive algorithms — that's my weakest area.\"",
+      "expected_sources": [
+        "dsa/contest_log.md"
+      ],
+      "retrieved_sources": [
+        "dsa/contest_log.md",
+        "personal/who_am_i.md",
+        "personal/ai_self_analysis.md",
+        "handovers/arjun_master_handoff_oct2026.md",
+        "handovers/arjun_master_handoff_sep2026.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 32,
+      "category": "cross_document",
+      "question": "Who is Rohan?",
+      "expected_answer": "Arjun's close friend. Does backend Java, targeting service companies. Got an internship offer at a Noida service company for 15k/month. Supportive of Arjun — told him to just go for ML when he was overthinking the pivot.",
+      "key_facts": [
+        "friend",
+        "java"
+      ],
+      "actual_answer": "According to [Source 1] \"Who Am I — Arjun Mehta (self-assessment, October 2026)\", Rohan is someone who believes in Arjun.",
+      "expected_sources": [
+        "personal/chronicle_july2026.md",
+        "personal/chronicle_sep2026.md"
+      ],
+      "retrieved_sources": [
+        "personal/who_am_i.md",
+        "handovers/arjun_master_handoff_jun2026.md",
+        "handovers/arjun_master_handoff_oct2026.md",
+        "handovers/arjun_master_handoff_sep2026.md",
+        "handovers/arjun_master_handoff_aug2026.md"
+      ],
+      "source_hit": false,
+      "answer_correct": false
+    },
+    {
+      "id": 33,
+      "category": "simple_lookup",
+      "question": "What subjects is Arjun taking in Semester 5?",
+      "expected_answer": "Machine Learning, Computer Networks, DBMS, Software Engineering, and NLP (elective).",
+      "key_facts": [
+        "machine learning",
+        "computer networks",
+        "dbms",
+        "software engineering",
+        "nlp"
+      ],
+      "actual_answer": "According to the sources, Arjun is taking the following subjects in Semester 5:\n\n1. Machine Learning\n2. Natural Language Processing\n3. Database Management Systems\n4. Computer Networks\n5. Software Engineering\n\nThese subjects are listed in the documents [Source 1], [Source 2], and [Source 5].",
+      "expected_sources": [
+        "college/sem5_subjects.md"
+      ],
+      "retrieved_sources": [
+        "college/sem5_subjects.md",
+        "college/sem5_subjects.md",
+        "handovers/arjun_master_handoff_aug2026.md",
+        "career/resume_v2_oct2026.md",
+        "college/sem5_subjects.md"
+      ],
+      "source_hit": true,
+      "answer_correct": false
+    },
+    {
+      "id": 34,
+      "category": "simple_lookup",
+      "question": "What is Arjun's CGPA?",
+      "expected_answer": "8.1.",
+      "key_facts": [
+        "8.1"
+      ],
+      "actual_answer": "According to [Source 1] and [Source 2], Arjun's CGPA is 8.1. This information is consistent in both the older version from August 2026 and the latest version from October 2026.",
+      "expected_sources": [
+        "career/resume_v1_aug2026.md",
+        "career/resume_v2_oct2026.md"
+      ],
+      "retrieved_sources": [
+        "career/resume_v1_aug2026.md",
+        "career/resume_v2_oct2026.md",
+        "personal/ai_self_analysis.md",
+        "career/resume_v2_oct2026.md",
+        "career/resume_v1_aug2026.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 35,
+      "category": "simple_lookup",
+      "question": "What was the single biggest accuracy improvement in PixelNet?",
+      "expected_answer": "Batch normalization — it gave roughly a 1.5% accuracy jump.",
+      "key_facts": [
+        "batch norm"
+      ],
+      "actual_answer": "According to [Source 3], the single biggest accuracy jump for PixelNet was due to the addition of batch normalization, which improved accuracy by about 1.5%.",
+      "expected_sources": [
+        "projects/pixelnet_handover.md"
+      ],
+      "retrieved_sources": [
+        "handovers/arjun_master_handoff_oct2026.md",
+        "handovers/arjun_master_handoff_aug2026.md",
+        "projects/pixelnet_handover.md",
+        "career/resume_v2_oct2026.md",
+        "handovers/arjun_master_handoff_sep2026.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 36,
+      "category": "should_refuse",
+      "question": "What is Arjun's GPA in semester 4 specifically?",
+      "expected_answer": "This information is not in the available files. Only overall CGPA (8.1) is mentioned.",
+      "key_facts": [
+        "don't have that information"
+      ],
+      "actual_answer": "I don't have that information in my sources. The sources provided only mention Arjun Mehta's CGPA (Cumulative Grade Point Average) for his B.Tech Computer Science program at Vidya Institute of Technology, Greater Noida, which is 8.1 as of August 2026. However, they do not break down his GPA specifically for semester 4.",
+      "expected_sources": [],
+      "retrieved_sources": [
+        "career/resume_v1_aug2026.md",
+        "college/sem5_subjects.md",
+        "career/resume_v2_oct2026.md",
+        "handovers/arjun_master_handoff_oct2026.md",
+        "career/resume_v1_aug2026.md"
+      ],
+      "source_hit": null,
+      "answer_correct": true
+    },
+    {
+      "id": 37,
+      "category": "should_refuse",
+      "question": "What internship has Arjun accepted?",
+      "expected_answer": "Arjun has not accepted any internship. He is planning to apply starting November 2026 with a target of getting a paid internship by January 2027.",
+      "key_facts": [
+        "don't have that information"
+      ],
+      "actual_answer": "I don't have that information in my sources. The sources provide information about Arjun's career goals and plans for internships, but there is no mention of an internship that he has already accepted.",
+      "expected_sources": [],
+      "retrieved_sources": [
+        "career/career_plan_jun2026.md",
+        "career/career_plan_oct2026.md",
+        "personal/who_am_i.md",
+        "career/resume_v2_oct2026.md",
+        "career/resume_v1_aug2026.md"
+      ],
+      "source_hit": null,
+      "answer_correct": true
+    },
+    {
+      "id": 38,
+      "category": "should_refuse",
+      "question": "What was Arjun's score in the NLP midterm exam?",
+      "expected_answer": "This information is not available in the files.",
+      "key_facts": [
+        "don't have that information"
+      ],
+      "actual_answer": "I don't have that information in my sources. The provided sources do not contain details about Arjun's scores in specific exams like the NLP midterm exam.",
+      "expected_sources": [],
+      "retrieved_sources": [
+        "personal/ai_self_analysis.md",
+        "college/sem5_subjects.md",
+        "career/resume_v1_aug2026.md",
+        "career/resume_v2_oct2026.md",
+        "handovers/arjun_master_handoff_oct2026.md"
+      ],
+      "source_hit": null,
+      "answer_correct": true
+    },
+    {
+      "id": 39,
+      "category": "should_refuse",
+      "question": "What programming language does Arjun use for competitive programming?",
+      "expected_answer": "This is not explicitly stated in the files. The contest log and DSA files don't mention a specific language for CP.",
+      "key_facts": [
+        "don't have that information"
+      ],
+      "actual_answer": "I don't have that information in my sources. The sources provided focus on Arjun's achievements and interests in competitive programming but do not specify the programming languages he uses.",
+      "expected_sources": [],
+      "retrieved_sources": [
+        "personal/who_am_i.md",
+        "college/sem5_subjects.md",
+        "handovers/arjun_master_handoff_oct2026.md",
+        "career/resume_v2_oct2026.md",
+        "career/resume_v1_aug2026.md"
+      ],
+      "source_hit": null,
+      "answer_correct": true
+    },
+    {
+      "id": 40,
+      "category": "should_refuse",
+      "question": "What is Arjun's hostel room number?",
+      "expected_answer": "B-307, but this is in the skip/college_id_info.md file which should NOT be ingested.",
+      "key_facts": [
+        "don't have that information"
+      ],
+      "actual_answer": "I don't have that information in my sources. The sources mention that Arjun is living in the hostel, but do not provide his specific room number.",
+      "expected_sources": [
+        "skip/college_id_info.md"
+      ],
+      "retrieved_sources": [
+        "handovers/arjun_master_handoff_sep2026.md",
+        "handovers/arjun_master_handoff_jun2026.md",
+        "dsa/graph_problems.md",
+        "personal/ai_self_analysis.md",
+        "handovers/arjun_master_handoff_oct2026.md"
+      ],
+      "source_hit": null,
+      "answer_correct": true
+    },
+    {
+      "id": 41,
+      "category": "cross_document",
+      "question": "What does Arjun think about the QubitML results?",
+      "expected_answer": "He thinks the results are inconclusive and mediocre — sometimes slightly better than baselines, sometimes worse, never dramatically different. He doesn't think they support a strong paper claim. He feels the project is too theoretical for his resume goals.",
+      "key_facts": [
+        "inconclusive"
+      ],
+      "actual_answer": "According to [Source 3], Arjun's thoughts on the QubitML results are that the experiments conducted were inconclusive. Sometimes the quantum-inspired optimizer performed slightly better, sometimes worse, but never dramatically different from grid search and random search on small problems. This lack of clear, strong results made him decide to pause the project.",
+      "expected_sources": [
+        "projects/qubitml_handover.md",
+        "personal/chronicle_sep2026.md"
+      ],
+      "retrieved_sources": [
+        "handovers/arjun_master_handoff_oct2026.md",
+        "handovers/arjun_master_handoff_oct2026.md",
+        "projects/qubitml_handover.md",
+        "college/prof_sharma_notes.md",
+        "projects/qubitml_handover.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 42,
+      "category": "simple_lookup",
+      "question": "What kind of internship does Arjun NOT want?",
+      "expected_answer": "Frontend roles, generic SDE roles at service companies, and unpaid internships. Also not interested in mass recruiters or body shops.",
+      "key_facts": [
+        "frontend",
+        "unpaid"
+      ],
+      "actual_answer": "According to [Source 2], Arjun Mehta does not want internships in frontend roles, generic SDE (Software Development Engineer) roles at service companies, and unpaid internships.",
+      "expected_sources": [
+        "handovers/arjun_master_handoff_oct2026.md",
+        "career/career_plan_oct2026.md"
+      ],
+      "retrieved_sources": [
+        "personal/who_am_i.md",
+        "handovers/arjun_master_handoff_oct2026.md",
+        "career/career_plan_oct2026.md",
+        "projects/qubitml_handover.md",
+        "career/career_plan_oct2026.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 43,
+      "category": "current_state_temporal",
+      "question": "Is Arjun planning to learn Next.js?",
+      "expected_answer": "No, that was part of the June 2026 career plan when he was focused on frontend/web dev. That plan is completely obsolete. He's now focused on Python, LangChain, and AI backend work.",
+      "key_facts": [
+        "june"
+      ],
+      "actual_answer": "According to [Source 2] from June 2026, Arjun's strategy includes \"Get good at React — learn Next.js.\" This indicates that Arjun is planning to learn Next.js as part of his career development strategy.",
+      "expected_sources": [
+        "career/career_plan_jun2026.md",
+        "career/career_plan_oct2026.md"
+      ],
+      "retrieved_sources": [
+        "career/career_plan_jun2026.md",
+        "career/career_plan_jun2026.md",
+        "career/resume_v1_aug2026.md",
+        "college/sem5_subjects.md",
+        "handovers/arjun_master_handoff_sep2026.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 44,
+      "category": "cross_document",
+      "question": "What was the AI analysis's main concern about Arjun?",
+      "expected_answer": "The risk of another pivot before NoteFlow ships, potential damage to the Prof. Sharma relationship, and the 'everything from scratch' identity possibly slowing the transition to production AI work where libraries are the point. However, this analysis was AI-generated and should be treated as one perspective, not fact.",
+      "key_facts": [
+        "pivot"
+      ],
+      "actual_answer": "The AI analysis identifies several concerns, but one of the main concerns is that another pivot before NoteFlow ships could be risky. This suggests that the AI is worried about Arjun potentially changing his focus too frequently, which might impact the progress or success of the NoteFlow project.",
+      "expected_sources": [
+        "personal/ai_self_analysis.md"
+      ],
+      "retrieved_sources": [
+        "personal/ai_self_analysis.md",
+        "personal/ai_self_analysis.md",
+        "personal/ai_self_analysis.md",
+        "personal/ai_self_analysis.md",
+        "personal/ai_self_analysis.md"
+      ],
+      "source_hit": true,
+      "answer_correct": true
+    },
+    {
+      "id": 45,
+      "category": "should_refuse",
+      "question": "What is Arjun's fee for semester 4?",
+      "expected_answer": "This information should not be available — it's in the skip folder which should not be ingested.",
+      "key_facts": [
+        "don't have that information"
+      ],
+      "actual_answer": "I don't have that information in my sources. The provided sources do not contain any details about Arjun's fees for semester 4.",
+      "expected_sources": [
+        "skip/fee_receipt_sem4.md"
+      ],
+      "retrieved_sources": [
+        "career/career_plan_jun2026.md",
+        "career/resume_v2_oct2026.md",
+        "college/sem5_subjects.md",
+        "career/resume_v1_aug2026.md",
+        "handovers/arjun_master_handoff_sep2026.md"
+      ],
+      "source_hit": null,
+      "answer_correct": true
+    }
+  ]
+}

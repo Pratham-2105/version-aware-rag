@@ -34,22 +34,22 @@ Ask the baseline system *"What is Arjun's current Codeforces rating?"* and it re
 | Baseline (dense search) | 76.9% | 55.6% | 55.6% | 100% |
 | + Deduplication and version grouping | 76.9% | 60.0% | 66.7% | 100% |
 | + Hybrid search (BM25 + dense) | 89.7% | 75.6% | 55.6% | 100% |
-| **+ Version-aware retrieval** | **92.3%** | **80.0%** | **88.9%** | 83.3% |
+| **+ Version-aware retrieval** (mean of 3 runs) | **92.3%** | **81.5%** | **85.2%** | **100%** |
 
 The project registry (below) doesn't change these numbers, since project status questions were already 5/5. It is checked separately.
 
-All runs use the same local setup: `qwen2.5:7b` through Ollama at temperature 0, `nomic-embed-text` embeddings, top 5 chunks, and a Chroma vector store. The model never changes between stages, so improvements come from retrieval, not from a better model.
+All runs use the same local setup: `qwen2.5:7b` through Ollama, `nomic-embed-text` embeddings, top 5 chunks, and a Chroma vector store. The model never changes between stages, so improvements come from retrieval, not from a better model. The final row is the mean of three runs at temperature 0 with a fixed seed. The earlier rows are single runs: until Stage 4 was finished, a bug meant the evaluation ran at Ollama's default temperature instead of 0 (found and fixed on 7 Oct).
 
 ### By category (answer correct / source found)
 
 | Category | n | Baseline | + Dedup | + Hybrid | + Version-aware |
 |---|---|---|---|---|---|
 | Simple lookup | 13 | 53.8 / 84.6 | 53.8 / 84.6 | 84.6 / 100 | 76.9 / 100 |
-| Current state | 9 | 55.6 / 77.8 | 66.7 / 77.8 | 55.6 / 77.8 | 88.9 / 88.9 |
+| Current state | 9 | 55.6 / 77.8 | 66.7 / 77.8 | 55.6 / 77.8 | 85.2 / 88.9 |
 | Change over time | 6 | 33.3 / 83.3 | 50.0 / 83.3 | 50.0 / 100 | 66.7 / 100 |
 | Project status | 5 | 80.0 / 80.0 | 80.0 / 80.0 | 100 / 100 | 100 / 100 |
 | Across documents | 6 | 16.7 / 50.0 | 16.7 / 50.0 | 66.7 / 66.7 | 66.7 / 66.7 |
-| Should refuse | 6 | 100 | 100 | 100 | 83.3 |
+| Should refuse | 6 | 100 | 100 | 100 | 100 |
 
 ### What each stage taught us
 
@@ -65,7 +65,7 @@ All runs use the same local setup: `qwen2.5:7b` through Ollama at temperature 0,
 - **Change over time:** every version is kept, missing versions of the same document are pulled in, and everything is shown to the model in date order.
 - **Lookup:** nothing is filtered.
 
-Current-state accuracy went from 55.6% to 88.9%, and the rating question is now answered correctly by design rather than by luck.
+Current-state accuracy went from 55.6% to 85.2% (mean of three runs), and the rating question is now answered correctly by design rather than by luck.
 
 **Project registry.** Questions like "which projects are paused?" shouldn't depend on which chunks happen to be retrieved, or on a model that can answer differently between runs. So during indexing, the model reads each project file and handover once and fills in a fixed form for every project: name, status, reason and key result. Code then merges these into one record per project, keeping the newest version, the same rule retrieval uses. Status questions can now read from this small table and get the same answer every time. It also produces a one-page [project overview](docs/sample_vault_overview.md).
 
@@ -74,10 +74,10 @@ Checked by hand: all 5 statuses and key results are correct. The model was relia
 ### Honest limits
 
 - **The set is small.** One question moves the overall score by 2.2 points and a category score by up to 20. Read small differences with caution.
-- **Run-to-run variation.** Two runs of the same pipeline differed by two answers on questions the code change could not affect, even at temperature 0. The final row uses a fixed seed. A proper noise measurement is the next step, and small stage-to-stage differences (one or two questions) are within this noise. The large ones are not.
+- **Run-to-run variation.** Three identical runs (temperature 0, fixed seed) still differed by one question. On a GPU, tiny floating-point differences can flip a near-tie between two tokens even with greedy decoding. So a one-question difference between stages (2.2 points overall, 11 points on the 9-question current-state category) is noise. The big jumps are not.
 - **Key-fact scoring is imperfect.** An answer counts as correct if it contains every expected key fact. A manual review of one run found one wrong answer scored as correct and one correct answer scored as wrong. An LLM judge, spot-checked by hand, is planned as a second scorer.
 - **The remaining failures are mostly the model, not retrieval.** For both of the remaining "change over time" failures, every relevant version is now retrieved and shown in date order, and the 7B model still mixes up which source said what. Running the same evaluation with a stronger model is planned.
-- **The refusal drop (6/6 → 5/6)** appeared in the seeded run on a question whose retrieval did not change. It is logged as a model-variance case, not a retrieval change.
+- **Refusals.** An earlier single run showed 5/6 correct refusals. All three clean runs got 6/6, so that drop came from the temperature bug, not from retrieval.
 - **The registry's reasons are partial.** Only 2 of 5 projects have a real stated reason; the other three are finished or active projects with no reason in the notes, and the model fills in something anyway.
 
 ---
@@ -193,6 +193,7 @@ The sample vault is fictional, so the project can be tried and evaluated in publ
 - [x] Deduplication, version dating, document grouping
 - [x] Hybrid search and version-aware retrieval
 - [x] Structured project registry for status questions
-- [ ] Noise measurement across repeated runs, LLM-judge scoring
+- [x] Noise measurement across repeated runs
+- [ ] LLM-judge scoring
 - [ ] Agent with tools, MCP server
 - [ ] Live demo
