@@ -1,127 +1,126 @@
 # version-aware-rag
 
-**A RAG engine that knows which copy of a document is current.**
+**A retrieval system that knows which copy of a document is current.**
 
-Personal notes, plans, and project files pile up as overlapping versions: duplicated handovers, backups, and later files that quietly correct earlier ones. Plain similarity search retrieves whichever chunk *sounds* closest to the question, which is often the stale one, and the model answers confidently wrong.
+Notes, plans and project files rarely stay in one clean version. They get duplicated, backed up, rewritten, and quietly corrected by newer files while the old ones stay around. A standard RAG pipeline doesn't know any of this. It retrieves whatever text sounds closest to the question, and when that text comes from an outdated version, the model gives a confident, wrong answer.
 
-This project measures that failure on a fixed evaluation set, then fixes it stage by stage with deduplication, document grouping, hybrid retrieval, and version-aware ranking. Every number in this README comes from `eval/run_eval.py`.
+This project measures that problem on a fixed set of questions and then fixes it one stage at a time: deduplication, grouping files into versions, hybrid search, and version-aware retrieval. Every number below comes from `eval/run_eval.py`, and the full history of what went wrong is in [`eval/failure_log.md`](eval/failure_log.md).
 
 ---
 
-## The problem, concretely
+## The problem
 
-The bundled sample vault describes a fictional student, Arjun, across 24 files written between June and October 2026. The same facts appear in several places and change over time:
+The repo ships with a fictional sample vault: 24 files about a student, Arjun, written between June and October 2026. Like real notes, the same facts show up in several files and change over time.
 
-| Fact | Values across files | Current |
+| Fact | Values across files | Correct today |
 |---|---|---|
-| Codeforces rating | 1420 → 1510 → 1480 → 1550 | 1550 (Oct) |
-| PixelNet accuracy | 89.7% (Aug, stale) → 91.3% | 91.3% |
-| QubitML status | active → paused | paused (Oct) |
-| Career goal | frontend internship → AI backend internship | AI backend (Oct) |
+| Codeforces rating | 1420 → 1510 → 1480 → 1550 | 1550 |
+| PixelNet accuracy | 89.7% → 91.3% | 91.3% |
+| QubitML status | active → paused | paused |
+| Career goal | frontend internship → AI backend internship | AI backend |
 
-The vault also contains two duplicate copies: `arjun_master_handoff_aug2026 (1).md` and `career_plan_oct2026_backup.md`.
+The vault also contains two exact duplicates: a copied handover with `(1)` in its name and a `_backup` of a career plan.
 
-Asked *"What is Arjun's current Codeforces rating?"*, the baseline retrieves all four handoffs with nearly identical similarity scores (0.30–0.33) and answers **1510**, citing the two copies of the August handoff. The right answer, 1550, was in the retrieved context. Nothing in the system knows that October is newer than August.
+Ask the baseline system *"What is Arjun's current Codeforces rating?"* and it retrieves all four handovers with almost identical similarity scores, then answers **1510** from the August copy. The correct answer, 1550, was in the retrieved text the whole time. The system had no way of knowing that October comes after August.
 
 ---
 
 ## Results
 
-Evaluated on 45 hand-written questions with verified answers and source files.
+45 hand-written questions, each with a verified answer and the files that support it.
 
-| Stage | Source hit rate | Answer correctness | Temporal (current-state) | Refusal accuracy |
+| Stage | Source found | Answer correct | Current-state questions | Correct refusals |
 |---|---|---|---|---|
-| Baseline dense | 76.9% (30/39) | 55.6% (25/45) | 55.6% (5/9) | 100% (6/6) |
-| + Dedup & version grouping | 76.9% (30/39) | 60.0% (27/45) | 66.7% (6/9) | 100% (6/6) |
-| + Hybrid (BM25 + dense) | **89.7%** (35/39) | **75.6%** (34/45) | 55.6% (5/9) | 100% (6/6) |
-| + Version-aware ranking & intent routing | — | — | — | — |
-| + Structured registry for status questions | — | — | — | — |
+| Baseline (dense search) | 76.9% | 55.6% | 55.6% | 100% |
+| + Deduplication and version grouping | 76.9% | 60.0% | 66.7% | 100% |
+| + Hybrid search (BM25 + dense) | 89.7% | 75.6% | 55.6% | 100% |
+| **+ Version-aware retrieval** | **92.3%** | **80.0%** | **88.9%** | 83.3% |
+| + Structured project registry | — | — | — | — |
 
-Configuration for all runs: LLM `qwen2.5:7b` (local, Ollama, temperature 0), embeddings `nomic-embed-text`, top-k = 5, Chroma vector store. The model, prompt and settings stay fixed across stages, so differences come from retrieval changes, not model changes. Each stage changes one thing.
+All runs use the same local setup: `qwen2.5:7b` through Ollama at temperature 0, `nomic-embed-text` embeddings, top 5 chunks, and a Chroma vector store. The model never changes between stages, so improvements come from retrieval, not from a better model.
 
-### By category
+### By category (answer correct / source found)
 
-Answer correctness / source hit rate.
+| Category | n | Baseline | + Dedup | + Hybrid | + Version-aware |
+|---|---|---|---|---|---|
+| Simple lookup | 13 | 53.8 / 84.6 | 53.8 / 84.6 | 84.6 / 100 | 76.9 / 100 |
+| Current state | 9 | 55.6 / 77.8 | 66.7 / 77.8 | 55.6 / 77.8 | 88.9 / 88.9 |
+| Change over time | 6 | 33.3 / 83.3 | 50.0 / 83.3 | 50.0 / 100 | 66.7 / 100 |
+| Project status | 5 | 80.0 / 80.0 | 80.0 / 80.0 | 100 / 100 | 100 / 100 |
+| Across documents | 6 | 16.7 / 50.0 | 16.7 / 50.0 | 66.7 / 66.7 | 66.7 / 66.7 |
+| Should refuse | 6 | 100 | 100 | 100 | 83.3 |
 
-| Category | n | Baseline | + Dedup & grouping | + Hybrid |
-|---|---|---|---|---|
-| Simple lookup | 13 | 53.8 / 84.6 | 53.8 / 84.6 | 84.6 / 100.0 |
-| Current-state (temporal trap) | 9 | 55.6 / 77.8 | 66.7 / 77.8 | 55.6 / 77.8 |
-| Historical / change over time | 6 | 33.3 / 83.3 | 50.0 / 83.3 | 50.0 / 100.0 |
-| Status aggregation | 5 | 80.0 / 80.0 | 80.0 / 80.0 | 100.0 / 100.0 |
-| Cross-document | 6 | 16.7 / 50.0 | 16.7 / 50.0 | 66.7 / 66.7 |
-| Should refuse | 6 | 100.0 / n/a | 100.0 / n/a | 100.0 / n/a |
+### What each stage taught us
 
-### What each stage showed
+**Baseline.** The right file is usually found, but the answer is still often wrong. Questions about how something changed find a correct source 83% of the time and get answered correctly only 33% of the time, because every version comes back with nothing to say which one is newer.
 
-**Baseline.** Retrieval often finds the right file but the answer is still wrong. Historical questions hit the right source 83% of the time but are answered correctly only 33% of the time: chunks for every version come back with nothing to order them by date. Cross-document questions are weakest (16.7%) because duplicate chunks crowd facts out of the top 5. Grounding works: all 6 unanswerable questions were refused, including two whose answers exist only in a deliberately excluded folder.
+**Deduplication and grouping.** Two duplicate files were removed and the remaining 22 were grouped into 16 document families, each file labelled with its date and whether it is the latest version. This fixed two questions, including the rating question, but only by luck: removing a duplicate made room for the October chunk. Nothing was choosing the newest version yet.
 
-**+ Dedup & grouping.** Removed 2 duplicate files (14 chunks) and grouped the remaining 22 files into 16 document families, each file labelled with a resolved version date and its rank within the family. Fixed 2 questions, no regressions. The current-rating question now answered 1550, but only because removing the duplicate freed a top-5 slot for the October chunk. Nothing ranks by date yet, so the fix was incidental. Source hit rate did not move: dedup removes noise but cannot surface new sources.
+**Hybrid search.** Adding keyword search (BM25) next to embedding search raised the share of questions with a correct source from 77% to 90%. Exact names and numbers like "PixelNet" or "1550" are where keyword search shines. But questions about the current state got *worse*. A query like "current Codeforces rating" matches all four handovers on keywords, so outdated versions came back into the results. **Finding more relevant text made the version problem worse, not better.**
 
-**+ Hybrid retrieval.** BM25 keyword search fused with dense search (Reciprocal Rank Fusion). Fixed 9 questions; source hit rate rose to 89.7% and cross-document answers from 16.7% to 66.7%, since project names and numbers are exactly what keyword matching is good at. **But temporal correctness dropped.** "Current Codeforces rating" shares its keywords with all four handoffs, so BM25 pulled older versions back into the top 5 and the answer regressed. Better recall makes the version problem worse. That is the case for version-aware ranking, the next stage.
+**Version-aware retrieval.** Each question is now classified as asking about the present, about change over time, or as a plain lookup:
 
-Wrong answers and their causes are tracked in [`eval/failure_log.md`](eval/failure_log.md). Full per-question results: `eval/results/`.
+- **Present:** only the latest version of each document is searched. Outdated copies never reach the model.
+- **Change over time:** every version is kept, missing versions of the same document are pulled in, and everything is shown to the model in date order.
+- **Lookup:** nothing is filtered.
+
+Current-state accuracy went from 55.6% to 88.9%, and the rating question is now answered correctly by design rather than by luck.
+
+### Honest limits
+
+- **The set is small.** One question moves the overall score by 2.2 points and a category score by up to 20. Read small differences with caution.
+- **Run-to-run variation.** Two runs of the same pipeline differed by two answers on questions the code change could not affect, even at temperature 0. The final row uses a fixed seed. A proper noise measurement is the next step, and small stage-to-stage differences (one or two questions) are within this noise. The large ones are not.
+- **Key-fact scoring is imperfect.** An answer counts as correct if it contains every expected key fact. A manual review of one run found one wrong answer scored as correct and one correct answer scored as wrong. An LLM judge, spot-checked by hand, is planned as a second scorer.
+- **The remaining failures are mostly the model, not retrieval.** For both of the remaining "change over time" failures, every relevant version is now retrieved and shown in date order, and the 7B model still mixes up which source said what. Running the same evaluation with a stronger model is planned.
+- **The refusal drop (6/6 → 5/6)** appeared in the seeded run on a question whose retrieval did not change. It is logged as a model-variance case, not a retrieval change.
 
 ---
 
-## How evaluation works
+## How it works
 
-`eval/golden_questions.json` holds 45 questions across six categories. Each has an expected answer, the files that support it, and a list of `key_facts`.
-
-- **Source hit rate:** at least one expected file appears in the top-k retrieved chunks. The 6 should-refuse questions are excluded (they have no valid source), so this is out of 39.
-- **Answer correctness:** every key fact (lowercased) appears in the model's answer. For example, the current-rating question requires `"1550"`; the PixelNet optimizer question requires both `"sgd"` and `"momentum"`.
-- **Refusal accuracy:** for questions with no answer in the vault, the model must say it doesn't have the information.
-
-**Known limits of key-fact matching.** It can pass an answer that mentions the right value but picks a different one as current, and it can fail a correct answer phrased differently. A few key facts are weak (very short strings). The set is small, so one question moves overall accuracy by 2.2 points and a category by up to 20. An LLM-as-judge, spot-checked by hand, is planned as a second scoring method; both will be reported.
-
----
-
-## Architecture (current)
-
-Ingestion runs offline and labels every chunk; retrieval reads those labels at question time.
+Indexing runs once, offline, and labels every chunk with version information. At question time, retrieval reads those labels.
 
 ```
-data/sample-vault/*.md
-        │  scripts/ingest.py      (rebuild the index)
-        ▼
- load_vault()          walk the vault, skip the skip/ folder
-        ▼
- resolve_version_date  date per file: filename > document header > file mtime
-        ▼
- deduplicate()         SHA-256 of normalized text for exact copies;
-                       word-shingle Jaccard for near-copies, only when
-                       both files have the same version date
-        ▼
- group_documents()     document families by filename stem (dates, v1/v2,
-                       copy markers stripped); rank versions newest first
-        ▼
- chunk_document()      split on markdown headers, keep the header path
-        ▼
- Chroma                every chunk stores: source, header_path, version_date,
-                       date_source, doc_group_id, version_rank, is_latest
-        │
-        │  question time  (src/interfaces/cli.py, eval/run_eval.py)
-        ▼
- HybridRetriever       dense top-20 (Chroma) + BM25 top-20, fused with RRF → top 5
-        ▼
- answer_question()     numbered, cited context → qwen2.5:7b
-                       "answer only from sources, cite them, refuse otherwise"
+INDEXING  (python scripts/ingest.py)
+
+  sample vault
+     │
+     ├─ load files            skip the private skip/ folder
+     ├─ date each file        from the filename, else the document header,
+     │                        else the file's modified time (marked as weak)
+     ├─ remove duplicates     exact copies by content hash; near-copies only
+     │                        if they also share the same date
+     ├─ group versions        files with the same name apart from date or
+     │                        v1/v2 form one family, newest marked as latest
+     ├─ split into chunks     by markdown headings
+     └─ store in Chroma       with source, date, family and is_latest
+
+QUESTION TIME  (cli.py, run_eval.py)
+
+  question
+     ├─ classify              present / change over time / lookup
+     ├─ search                dense + BM25, merged by rank (RRF);
+     │                        "present" questions search latest versions only
+     ├─ expand                "change" questions pull in missing versions
+     ├─ order                 "change" questions sorted oldest to newest
+     └─ answer                each source shown with its date and whether it
+                              is the latest version; the model must cite
+                              sources or say it doesn't know
 ```
 
-Design choices worth knowing:
+A few decisions worth explaining:
 
-- **Dates are resolved before deduplication.** A near-duplicate check on text alone would drop a newer version that differs by one changed fact. Requiring the same version date prevents it.
-- **Version decisions are made per file, stored per chunk.** Chunks inherit their file's date and family, so retrieval can filter and rank without re-reading files.
-- **Fusion uses ranks, not scores.** BM25 scores and cosine distances live on different scales; Reciprocal Rank Fusion (k = 60) needs no normalization or tuning.
-- **The BM25 index is built from Chroma** at startup, so both retrievers share the same chunks and IDs.
-
-Next: version-aware ranking (prefer `is_latest` within a document family for current-state questions, keep every version for history questions), a question-intent classifier to decide which applies, and version dates shown to the model in context.
+- **Dates come before deduplication.** Two versions of a handover can be 90% identical with one changed number. Treating them as duplicates would throw away the newer fact, so near-duplicates must also share a date.
+- **Version information is decided per file and stored per chunk.** A chunk inherits its file's date and family, so retrieval can filter without re-reading anything.
+- **Search results are merged by rank, not score.** Keyword scores and embedding distances are on different scales. Reciprocal Rank Fusion avoids normalising them.
+- **Weak dates are hidden from the model.** Files dated only by modified time show as "undated", because a copy date would make an old file look like the newest one.
+- **The question classifier is rule-based for now.** It is fast, free, testable, and routes 12 of the 15 time-sensitive questions correctly. A model-based router is planned.
 
 ---
 
 ## Quickstart
 
-Requirements: Python 3.11+, [Ollama](https://ollama.com).
+You need Python 3.11+ and [Ollama](https://ollama.com).
 
 ```bash
 git clone https://github.com/Pratham-2105/version-aware-rag.git
@@ -137,41 +136,44 @@ ollama pull qwen2.5:7b
 From the project root:
 
 ```bash
-python scripts/ingest.py         # ingest, dedup, group, embed the sample vault (prints a report)
-python src/interfaces/cli.py     # interactive Q&A, type 'exit' to quit
-python eval/run_eval.py          # full eval, results saved to eval/results/
+python scripts/ingest.py         # build the index and print an ingestion report
+python src/interfaces/cli.py     # ask questions, type 'exit' to quit
+python eval/run_eval.py          # run the 45-question evaluation
 python -m pytest tests           # unit tests
 ```
 
-Note: the code connects to Ollama at `http://127.0.0.1:11434` explicitly, so an `OLLAMA_HOST=0.0.0.0` setting used for Docker doesn't break the Python client.
+The code talks to Ollama at `http://127.0.0.1:11434` directly, so an `OLLAMA_HOST=0.0.0.0` setting (used for Docker) doesn't break it.
 
 ---
 
 ## Project layout
 
 ```
-data/sample-vault/   fictional, shareable test corpus
-eval/                golden questions, eval runner, results, failure log
-scripts/             ingest.py (rebuild the index)
-src/ingest/          loaders, version dates, dedup, grouping, chunker, pipeline
-src/retrieval/       vector store, BM25, hybrid fusion (version ranking to come)
-src/interfaces/      CLI (MCP server and API to come)
-tests/               dedup, grouping, version dates, retrieval
+data/sample-vault/   fictional test corpus, safe to share
+eval/                questions, evaluation runner, results, failure log
+scripts/             ingest.py rebuilds the index
+src/ingest/          loading, dating, deduplication, grouping, chunking
+src/retrieval/       vector store, BM25, hybrid search, version-aware ranking
+src/router/          question classifier
+src/interfaces/      command-line interface
+tests/               unit tests for every ingestion and retrieval step
 ```
 
 ---
 
 ## Privacy
 
-The sample vault is fictional and exists so the project can be tried and evaluated publicly. Real personal notes are only ever used locally, are gitignored, and are embedded with a local model.
+The sample vault is fictional, so the project can be tried and evaluated in public. Real personal notes are only ever used locally, stay out of the repository, and are embedded with a local model.
 
 ---
 
 ## Status
 
-- [x] Stage 0: sample vault + 45-question golden set
-- [x] Stage 1: loading and structure-aware chunking
-- [x] Stage 2: baseline dense RAG, CLI, eval harness
-- [x] Stage 3: deduplication, document grouping, version dates
-- [ ] Stage 4: hybrid retrieval ✓, version-aware ranking, intent routing
-- [ ] Later: project-status registry, agent with tools, MCP server
+- [x] Sample vault and 45-question evaluation set
+- [x] Loading and heading-aware chunking
+- [x] Baseline retrieval, command-line interface, evaluation harness
+- [x] Deduplication, version dating, document grouping
+- [x] Hybrid search and version-aware retrieval
+- [ ] Noise measurement across repeated runs, LLM-judge scoring
+- [ ] Structured project registry for status questions
+- [ ] Agent with tools, MCP server

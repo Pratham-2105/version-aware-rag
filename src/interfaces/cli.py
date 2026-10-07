@@ -120,7 +120,7 @@ if __name__ == "__main__":
                 {"role": "system", "content": prompt_with_context},
                 {"role": "user", "content": user_input},
             ],
-            options={"temperature": 0},
+            options={"temperature": 0, "seed": 42},
         )
 
         print(f"\nJarvis: {response['message']['content']}\n")
