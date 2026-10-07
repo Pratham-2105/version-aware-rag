@@ -7,6 +7,7 @@ Model reads, code decides (same rule as Stage 5): the model writes a draft answe
 then check_citations() verifies it in plain Python. A draft that cites nothing it
 actually retrieved is replaced by the refusal.
 """
+
 import os
 import re
 from pathlib import Path
@@ -16,7 +17,7 @@ from langchain.agents import create_agent
 from langchain_core.messages import AIMessage, ToolMessage
 from langgraph.errors import GraphRecursionError
 
-from src.agent.prompts import AGENT_SYSTEM_PROMPT, REFUSAL, SEARCH_NUDGE
+from src.agent.prompts import AGENT_SYSTEM_PROMPT, CITE_NUDGE, REFUSAL, SEARCH_NUDGE
 from src.agent.tools import TOOLS
 
 # Each model call and each tool execution is one graph step.
@@ -49,7 +50,9 @@ def get_model():
             client_kwargs={"timeout": 120},
         )
 
-    if provider == "openai_compat":  # any OpenAI-compatible API (AirRouter, OpenRouter, DeepSeek...)
+    if (
+        provider == "openai_compat"
+    ):  # any OpenAI-compatible API (AirRouter, OpenRouter, DeepSeek...)
         from langchain_openai import ChatOpenAI
 
         return ChatOpenAI(
@@ -61,7 +64,9 @@ def get_model():
             timeout=60,
         )
 
-    raise ValueError(f"Unknown JARVIS_LLM_PROVIDER: {provider!r} (use 'ollama' or 'openai_compat')")
+    raise ValueError(
+        f"Unknown JARVIS_LLM_PROVIDER: {provider!r} (use 'ollama' or 'openai_compat')"
+    )
 
 
 def model_label():
@@ -70,10 +75,13 @@ def model_label():
 
 
 def build_agent(model=None):
-    return create_agent(model or get_model(), tools=TOOLS, system_prompt=AGENT_SYSTEM_PROMPT)
+    return create_agent(
+        model or get_model(), tools=TOOLS, system_prompt=AGENT_SYSTEM_PROMPT
+    )
 
 
 # ---------- citation enforcement (pure function, unit-tested) ----------
+
 
 def _file_names(text):
     return {Path(p).name.lower() for p in PATH_RE.findall(text.replace("\\", "/"))}
@@ -98,19 +106,29 @@ def _used_tools(messages):
     return any(isinstance(m, AIMessage) and m.tool_calls for m in messages)
 
 
+def _invoke(agent, messages):
+    return agent.invoke({"messages": messages}, config={"recursion_limit": MAX_STEPS})[
+        "messages"
+    ]
+
+
+def _tool_text(messages):
+    return "\n".join(m.text for m in messages if isinstance(m, ToolMessage))
+
+
 def judge(draft, tool_calls, tool_text):
     """Decide what the user sees. Returns (status, final_answer)."""
     if is_refusal(draft):
         # A refusal without searching is right only by luck: flag it, keep the answer.
         return ("refused" if tool_calls else "refused_no_search"), draft
     if not tool_calls:
-        status = "no_tool"            # answered from its own knowledge
+        status = "no_tool"  # answered from its own knowledge
     else:
         cites = check_citations(draft, tool_text)
         if not cites["valid"]:
             status = "uncited"
         elif cites["invented"]:
-            status = "ok_invented_citation"   # kept, but flagged in the trace
+            status = "ok_invented_citation"  # kept, but flagged in the trace
         else:
             status = "ok"
     if ENFORCE_CITATIONS and status in ("no_tool", "uncited"):
@@ -120,37 +138,56 @@ def judge(draft, tool_calls, tool_text):
 
 # ---------- one question in, answer + trace out ----------
 
+
 def ask(agent, question):
     """Run one question through the agent (no conversation memory yet — Stage 6.5).
 
-    If the model refuses without having called any tool, it gets ONE follow-up
-    message telling it to search first. Code enforces rule 1; the prompt alone didn't.
+    Two rules the prompt states but a 7B model doesn't reliably follow are enforced here,
+    each with ONE corrective follow-up before code decides:
+      "search" - refused without calling any tool  -> told to search first
+      "cite"   - answered from tools but cited nothing -> told to add citations
+    If the second attempt still breaks the rule, judge() blocks it as before.
     """
-    config = {"recursion_limit": MAX_STEPS}
-    retried = False
+    retried = []
     try:
-        messages = agent.invoke(
-            {"messages": [{"role": "user", "content": question}]}, config=config
-        )["messages"]
+        messages = _invoke(agent, [{"role": "user", "content": question}])
+
         if is_refusal(messages[-1].text) and not _used_tools(messages):
-            retried = True
-            messages = agent.invoke(
-                {"messages": messages + [{"role": "user", "content": SEARCH_NUDGE}]},
-                config=config,
-            )["messages"]
+            retried.append("search")
+            messages = _invoke(
+                agent, messages + [{"role": "user", "content": SEARCH_NUDGE}]
+            )
+
+        draft = messages[-1].text
+        if (
+            _used_tools(messages)
+            and not is_refusal(draft)
+            and not check_citations(draft, _tool_text(messages))["valid"]
+        ):
+            retried.append("cite")
+            messages = _invoke(
+                agent, messages + [{"role": "user", "content": CITE_NUDGE}]
+            )
     except GraphRecursionError:
         return {
-            "question": question, "answer": REFUSAL, "draft": "", "status": "step_limit",
-            "retried": retried, "tool_calls": [], "retrieved_sources": [],
-            "valid_citations": [], "invented_citations": [],
+            "question": question,
+            "answer": REFUSAL,
+            "draft": "",
+            "status": "step_limit",
+            "retried": retried,
+            "tool_calls": [],
+            "retrieved_sources": [],
+            "valid_citations": [],
+            "invented_citations": [],
         }
 
     tool_calls = [
         {"name": c["name"], "args": c["args"]}
-        for m in messages if isinstance(m, AIMessage)
+        for m in messages
+        if isinstance(m, AIMessage)
         for c in m.tool_calls
     ]
-    tool_text = "\n".join(m.text for m in messages if isinstance(m, ToolMessage))
+    tool_text = _tool_text(messages)
     draft = messages[-1].text
 
     status, answer = judge(draft, tool_calls, tool_text)

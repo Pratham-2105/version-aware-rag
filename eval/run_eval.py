@@ -15,8 +15,8 @@ from src.interfaces.cli import answer_question
 
 # "pipeline" = V1 fixed pipeline (cli.answer_question), the Stages 0-4 rows.
 # "agent"    = Stage 6 agent (model picks tools and the time mode itself).
-ANSWER_MODE = "pipeline"
-STAGE_NAME = "stage6_agent_qwen"
+ANSWER_MODE = "agent"
+STAGE_NAME = "stage6_agent_final_qwen_a"
 LLM_MODEL = "qwen2.5:7b"   # pipeline mode only; agent mode reads the model from .env
 EMBED_MODEL = "nomic-embed-text"
 RESULTS_DIR = Path("eval/results")
@@ -111,6 +111,7 @@ for item in data:
     if agent_trace is not None:
         record.update({
             "status": agent_trace["status"],
+            "retried": agent_trace["retried"],
             "draft": agent_trace["draft"],
             "tool_calls": agent_trace["tool_calls"],
             "route_ok": route_ok(category, agent_trace["tool_calls"]),
@@ -172,6 +173,7 @@ if ANSWER_MODE == "agent":
         "route_misses": [r["id"] for r in routed if not r["route_ok"]],
         "status_counts": dict(Counter(r["status"] for r in results)),
         "tool_counts": dict(Counter(c["name"] for r in results for c in r["tool_calls"])),
+        "retried_ids": {r["id"]: r["retried"] for r in results if r["retried"]},
         "blocked_ids": [r["id"] for r in results if r["status"] in ("no_tool", "uncited", "step_limit")],
         "invented_citation_ids": [r["id"] for r in results if r["invented_citations"]],
     }
@@ -198,6 +200,7 @@ if ANSWER_MODE == "agent":
     print(f"  Time-sensitive routing: {a['route_correct']}/{a['route_scored']}  misses: {a['route_misses']}")
     print(f"  Status counts:          {a['status_counts']}")
     print(f"  Tool calls:             {a['tool_counts']}")
+    print(f"  Retried:                {a['retried_ids']}")
     print(f"  Blocked by enforcement: {a['blocked_ids']}")
     print(f"  Invented citations:     {a['invented_citation_ids']}")
 

@@ -17,6 +17,12 @@ SEARCH_NUDGE = (
     "then answer from what it returns."
 )
 
+# Sent when the model answered from tool results but cited nothing.
+CITE_NUDGE = (
+    "Rewrite your answer with a [file path] citation after each fact, using only paths "
+    "shown after SOURCE: in the tool results. Do not change the facts."
+)
+
 AGENT_SYSTEM_PROMPT = f"""You are Jarvis, an assistant that answers questions about one person's notes \
 (their projects, plans, ratings, handovers, college, people they know). Questions may use their name or say "I"/"my".
 
