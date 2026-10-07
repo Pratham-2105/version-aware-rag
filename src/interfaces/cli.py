@@ -8,6 +8,8 @@ from ollama import Client
 from src.ingest.pipeline import run_ingestion
 from src.retrieval.hybrid import HybridRetriever
 from src.retrieval.vector_store import build_vectorstore, query_vectorstore
+from src.retrieval.version_ranker import order_for_context, version_filter
+from src.router.classifier import classify_intent
 
 RETRIEVAL_MODE = "hybrid"
 
@@ -22,7 +24,11 @@ def get_retriever(collection):
 
 
 def retrieve(collection, question, top_k=5):
-    return get_retriever(collection).search(question, top_k=top_k, mode=RETRIEVAL_MODE)
+    intent = classify_intent(question)
+    results = get_retriever(collection).search(
+        question, top_k=top_k, where=version_filter(intent), mode=RETRIEVAL_MODE
+    )
+    return order_for_context(results, intent)
 
 
 vault_path = Path("././data/sample-vault/")
@@ -35,17 +41,22 @@ ollama_client = Client(host="http://127.0.0.1:11434")
 
 
 def format_context(results):
-    """Format retrieved chunks into a numbered context string with sources."""
-    context_parts = []
-
-    for i, (doc, meta) in enumerate(
-        zip(results["documents"][0], results["metadatas"][0])
-    ):
-        context_parts.append(
-            f"[Source {i + 1}] {meta['source']} > {meta['header_path']}\n{doc}"
+    parts = []
+    docs = results["documents"][0]
+    metas = results["metadatas"][0]
+    for n, (doc, meta) in enumerate(zip(docs, metas), start=1):
+        if meta.get("date_source") == "mtime":
+            date_note = "undated"
+        else:
+            date_note = meta.get("version_date", "undated")
+        if meta.get("group_size", 1) > 1:
+            date_note += (
+                ", latest version" if meta.get("is_latest") else ", older version"
+            )
+        parts.append(
+            f"[Source {n}] {meta['source']} > {meta['header_path']} ({date_note})\n{doc}"
         )
-
-    return "\n\n".join(context_parts)
+    return "\n\n".join(parts)
 
 
 SYSTEM_PROMPT = (
@@ -55,6 +66,7 @@ SYSTEM_PROMPT = (
     "2. Cite the source file for every claim (e.g. 'According to [Source 1]...').\n"
     "3. If the sources don't contain the answer, say 'I don't have that information in my sources.'\n"
     "4. Never make up information that isn't in the sources.\n\n"
+    "Each source shows its date and whether it is the latest version of its document. If sources give different values for the same fact, use the most recent one when asked about the current state, and describe the change in date order when asked how something changed."
 )
 
 
