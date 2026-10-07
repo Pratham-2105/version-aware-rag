@@ -35,6 +35,20 @@ Note: the observations for IDs 3 and 5 come from debug runs on the same pipeline
 
 ---
 
-## Stage 3 — dedup + grouping + version dates
+## Stage 3 — dedup + grouping (stage3_dedup_grouping_20261007_145452.json)
 
-(to fill after the Stage 3 eval run)
+**Fixed:** Q8, Q16. **Regressions:** none. **Still failing:** 18.
+
+- **Q8 (current CF rating)** — now answers 1550. Cause of fix: removing the Aug "(1)" duplicate freed a top-5 slot, letting the Oct handoff chunk in; the LLM preferred it (filename shows oct2026). **Fragile:** no date-based ranking exists yet, so the correct answer depends on the LLM's choice. Stage 4 must make this deterministic (filter `is_latest` for current-state questions).
+- **Q16** — fixed by the same mechanism (fewer duplicate chunks in context).
+- **Q5 (DataLens deployment)** — still answers from an older handoff. Needs version-aware ranking (Stage 4).
+- **Q3** — right file, wrong chunk; not a version problem. Candidate for hybrid retrieval / larger top_k (Stage 4).
+- **Cross-document (16.7%, source 50%)** — unchanged; dedup cannot help recall. Needs hybrid retrieval.
+
+**Observations for Stage 4**
+- Source hit rate unchanged at 76.9%: all remaining misses are recall failures.
+- `version_date` is in chunk metadata but NOT shown to the LLM — `format_context` prints only file and header. Show the date in the context so the model can reason about recency even without filtering.
+- 9/22 files are dated by mtime (weak). Version ranking must only compare dates within a doc_group_id.
+- Grouping false positive: chronicle_july2026 + chronicle_sep2026 grouped as one family (diary entries, not versions). Harmless only if "latest wins" is restricted to current-state questions.
+
+**Unit-test note:** near-duplicate detection is unit-tested only; both sample-vault duplicates were exact after normalization.

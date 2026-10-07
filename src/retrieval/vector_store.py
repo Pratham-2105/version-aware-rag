@@ -1,74 +1,42 @@
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
-
+"""Chroma vector store: build (with optional rebuild) and query."""
 import chromadb
-from chromadb.utils.embedding_functions.ollama_embedding_function import (
-    OllamaEmbeddingFunction,
-)
+from chromadb.utils.embedding_functions import OllamaEmbeddingFunction
 
-from src.ingest.pipeline import run_ingestion
+EMBED_MODEL = "nomic-embed-text"
+OLLAMA_URL = "http://127.0.0.1:11434"
 
 
-def build_vectorstore(chunks: list, store_path: str, collection_name: str):
-    """Takes chunk dicts, embeds and stores them in a persistent Chroma collection."""
+def get_embedding_function():
+    return OllamaEmbeddingFunction(url=OLLAMA_URL, model_name=EMBED_MODEL)
 
-    client = chromadb.PersistentClient(path=store_path)
 
-    embedding_function = OllamaEmbeddingFunction(
-        url="http://localhost:11434",
-        model_name="nomic-embed-text",
-    )
+def build_vectorstore(chunks, store_path, collection_name, rebuild=False):
+    client = chromadb.PersistentClient(path=str(store_path))
+
+    if rebuild:
+        try:
+            client.delete_collection(collection_name)
+        except Exception:
+            pass  # collection didn't exist; error type differs across chromadb versions
 
     collection = client.get_or_create_collection(
         name=collection_name,
-        embedding_function=embedding_function,
+        embedding_function=get_embedding_function(),
     )
 
-    # Unpack chunks into the three parallel lists Chroma expects
-    documents = []
-    metadatas = []
-    ids = []
-
-    for i, chunk in enumerate(chunks):
-        documents.append(chunk["content"])
-        metadatas.append({
-            "source": chunk["source"],
-            "header_path": chunk["header_path"],
-        })
-        ids.append(f"{chunk['source']}::chunk_{i}")
-
-    collection.add(documents=documents, metadatas=metadatas, ids=ids)
-
+    if collection.count() == 0:
+        collection.add(
+            documents=[c["content"] for c in chunks],
+            metadatas=[{k: v for k, v in c.items() if k != "content"} for c in chunks],
+            ids=[f"{c['source']}::chunk_{i}" for i, c in enumerate(chunks)],
+        )
     return collection
 
 
-def query_vectorstore(collection, query: str, top_k: int = 5):
-    """Queries the collection and returns top-k results."""
-
-    results = collection.query(query_texts=[query], n_results=top_k)
-
-    return results
+def open_vectorstore(store_path, collection_name):
+    client = chromadb.PersistentClient(path=str(store_path))
+    return client.get_collection(name=collection_name, embedding_function=get_embedding_function())
 
 
-if __name__ == "__main__":
-    vault_path = Path("././data/sample-vault/")
-    store_path = Path("././data/chroma-store/")
-
-    chunks = run_ingestion(vault_path)
-    print(f"Loaded {len(chunks)} chunks")
-
-    collection = build_vectorstore(chunks, store_path, "sample_collection")
-    print(f"Stored {collection.count()} documents in Chroma")
-
-    # Test query
-    results = query_vectorstore(collection, "What accuracy did PixelNet reach on MNIST?")
-    results = query_vectorstore(collection, "What is Arjun's current Codeforces rating?")
-
-    for i in range(len(results["documents"][0])):
-        print(f"\n--- Result {i+1} ---")
-        print(f"Source: {results['metadatas'][0][i]['source']}")
-        print(f"Header: {results['metadatas'][0][i]['header_path']}")
-        print(f"Content: {results['documents'][0][i][:200]}")
-        print(f"Distance: {results['distances'][0][i]:.4f}")
+def query_vectorstore(collection, query, top_k=5, where=None):
+    return collection.query(query_texts=[query], n_results=top_k, where=where)
