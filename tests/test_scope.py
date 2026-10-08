@@ -6,11 +6,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import pytest
 
-from src.ingest.grouping import apply_unversioned
-from src.ingest.metadata import top_folder
-from src.retrieval.bm25 import BM25Index
-from src.retrieval.filters import combine_where, folder_filter, matches
-from src.router.config import config_from_dict, load_config
+from jarvis.ingest.grouping import apply_unversioned
+from jarvis.ingest.metadata import top_folder
+from jarvis.retrieval.bm25 import BM25Index
+from jarvis.retrieval.filters import combine_where, folder_filter, matches
+from jarvis.router.config import config_from_dict, load_config
 
 RAW = {
     "paths": {"notes": "n", "index": "i", "collection": "c"},

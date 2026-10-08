@@ -3,7 +3,7 @@ import re
 
 from rank_bm25 import BM25Okapi
 
-from src.retrieval.filters import matches
+from jarvis.retrieval.filters import matches
 
 TOKEN = re.compile(r"[a-z0-9]+")
 

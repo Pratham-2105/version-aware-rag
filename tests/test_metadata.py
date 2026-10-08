@@ -3,7 +3,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.ingest.metadata import date_from_filename, date_from_header, resolve_version_date
+from jarvis.ingest.metadata import date_from_filename, date_from_header, resolve_version_date
 
 
 def test_filename_month_year():

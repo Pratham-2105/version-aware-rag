@@ -13,7 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.agent.agent import ask, build_agent, model_label
+from jarvis.agent.agent import ask, build_agent, model_label
 
 RESULTS_DIR = Path("eval/results")
 

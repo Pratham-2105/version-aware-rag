@@ -11,7 +11,7 @@ from chromadb.utils.embedding_functions.ollama_embedding_function import (
     OllamaEmbeddingFunction,
 )
 
-from src.interfaces.cli import answer_question
+from jarvis.interfaces.cli import answer_question
 
 # "pipeline" = V1 fixed pipeline (cli.answer_question), the Stages 0-4 rows.
 # "agent"    = Stage 6 agent (model picks tools and the time mode itself).
@@ -61,7 +61,7 @@ with open("eval/golden_questions.json", "r", encoding="utf-8") as file:
     data = json.load(file)
 
 if ANSWER_MODE == "agent":
-    from src.agent.agent import ask, build_agent, model_label
+    from jarvis.agent.agent import ask, build_agent, model_label
 
     agent = build_agent()
     LLM_MODEL = model_label()
@@ -69,8 +69,8 @@ if ANSWER_MODE == "agent":
 elif ANSWER_MODE == "router":
     # Nothing to open here: router_answer builds the graph once (lazily) and opens
     # the Chroma index named in config.yaml. Each question runs in a fresh thread.
-    from src.router.config import load_config
-    from src.router.graph import router_answer
+    from jarvis.router.config import load_config
+    from jarvis.router.graph import router_answer
 
     LLM_MODEL = load_config().local_model.get("model", "local")
 
@@ -219,7 +219,7 @@ if ANSWER_MODE == "agent":
     }
 
 if ANSWER_MODE == "router":
-    from src.router.config import load_config
+    from jarvis.router.config import load_config
 
     cfg = load_config()
     routed = [r for r in results if r["route_ok"] is not None]

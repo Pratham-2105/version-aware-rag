@@ -3,7 +3,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.registry.store import load_registry
+from jarvis.registry.store import load_registry
 
 OUTPUT_PATH = Path("docs/sample_vault_overview.md")
 STATUS_ORDER = ["active", "planned", "paused", "done", "abandoned", "unclear"]

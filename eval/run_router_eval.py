@@ -12,10 +12,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.router.classifier import classify_intent
-from src.router.config import load_config
-from src.router.llm_router import make_router
-from src.router.models import local_chat_model
+from jarvis.router.classifier import classify_intent
+from jarvis.router.config import load_config
+from jarvis.router.llm_router import make_router
+from jarvis.router.models import local_chat_model
 
 GOLDEN = Path("eval/golden_questions.json")
 MESSAGES = Path("eval/router_messages.json")

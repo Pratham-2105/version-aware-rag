@@ -5,7 +5,7 @@ Rule 2  Private routes run on the local model only; if it is down, fail visibly 
 Rule 3  A non-private answer never sees private turns from history, on any model.
 Rule 4  Tripwire: before a hosted call, re-check that no private chunk or turn is inside.
 """
-from src.ingest.metadata import top_folder
+from jarvis.ingest.metadata import top_folder
 
 
 class PrivacyViolation(RuntimeError):

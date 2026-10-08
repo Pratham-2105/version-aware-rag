@@ -18,11 +18,11 @@ from typing import Literal, Optional
 
 from langchain.tools import tool
 
-from src.registry.queries import get_project_status as registry_status
-from src.registry.queries import list_projects as registry_list
-from src.registry.store import load_registry
-from src.retrieval.search import date_note, retrieve
-from src.retrieval.vector_store import open_vectorstore
+from jarvis.registry.queries import get_project_status as registry_status
+from jarvis.registry.queries import list_projects as registry_list
+from jarvis.registry.store import load_registry
+from jarvis.retrieval.search import date_note, retrieve
+from jarvis.retrieval.vector_store import open_vectorstore
 
 STORE_PATH = Path("data/chroma-store/")
 COLLECTION_NAME = "sample_collection"

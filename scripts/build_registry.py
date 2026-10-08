@@ -5,9 +5,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.ingest.pipeline import run_ingestion
-from src.registry.extractor import build_extraction_chain, extract_from_document
-from src.registry.store import REGISTRY_PATH, merge_mentions, save_registry
+from jarvis.ingest.pipeline import run_ingestion
+from jarvis.registry.extractor import build_extraction_chain, extract_from_document
+from jarvis.registry.store import REGISTRY_PATH, merge_mentions, save_registry
 
 VAULT_PATH = Path("data/sample-vault/")
 REGISTRY_FOLDERS = {"projects", "handovers"}

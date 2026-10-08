@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import pytest
 from mcp import Client
 
-from src.interfaces import mcp_server as server
+from jarvis.interfaces import mcp_server as server
 
 CANARY = "CANARY-5512"
 

@@ -24,10 +24,10 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from mcp.server import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
-from src.retrieval.search import date_note, retrieve
-from src.retrieval.vector_store import open_vectorstore
-from src.router.config import load_config
-from src.router.privacy_filter import chunk_folder
+from jarvis.retrieval.search import date_note, retrieve
+from jarvis.retrieval.vector_store import open_vectorstore
+from jarvis.router.config import load_config
+from jarvis.router.privacy_filter import chunk_folder
 
 TOP_K = 8  # the host model reads well, so it gets a few more chunks than qwen did
 MODE_TO_INTENT = {"current": "current_state", "history": "historical", "any": "lookup"}
@@ -79,7 +79,7 @@ def format_results(results, cfg):
 
 def call_agent_tool(name, args):
     """Reuse the Stage 6 tools so registry formatting can't drift between agent and MCP."""
-    from src.agent import tools as agent_tools  # heavy (LangChain): import on first use
+    from jarvis.agent import tools as agent_tools  # heavy (LangChain): import on first use
 
     try:
         return getattr(agent_tools, name).invoke(args)

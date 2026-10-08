@@ -1,7 +1,7 @@
 """Stage 6 — tests for the deterministic parts of the agent (no LLM, no Chroma)."""
-from src.agent import agent as agent_module
-from src.agent.agent import REFUSAL, check_citations, judge
-from src.agent.tools import TOOLS, format_hits, format_record, metric_changes, status_changes
+from jarvis.agent import agent as agent_module
+from jarvis.agent.agent import REFUSAL, check_citations, judge
+from jarvis.agent.tools import TOOLS, format_hits, format_record, metric_changes, status_changes
 
 RECORD = {
     "name": "QubitML",

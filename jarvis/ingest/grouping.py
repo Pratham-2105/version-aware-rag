@@ -10,8 +10,8 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
-from src.ingest.dedup import COPY_MARKERS
-from src.ingest.metadata import FILENAME_DATE, top_folder
+from jarvis.ingest.dedup import COPY_MARKERS
+from jarvis.ingest.metadata import FILENAME_DATE, top_folder
 
 VERSION_TOKEN = re.compile(r"(?<![a-z])v\d+(?![a-z0-9])")
 

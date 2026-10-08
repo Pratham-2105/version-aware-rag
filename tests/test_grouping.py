@@ -3,8 +3,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.ingest.grouping import family_key, group_documents
-from src.ingest.pipeline import run_ingestion
+from jarvis.ingest.grouping import family_key, group_documents
+from jarvis.ingest.pipeline import run_ingestion
 
 
 def test_family_key_strips_date():

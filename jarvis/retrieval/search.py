@@ -5,14 +5,14 @@ and the agent's search_notes tool all call retrieve() from here, so the agent an
 the evaluated pipeline can never drift apart.
 """
 
-from src.retrieval.filters import combine_where, folder_filter
-from src.retrieval.hybrid import HybridRetriever
-from src.retrieval.version_ranker import (
+from jarvis.retrieval.filters import combine_where, folder_filter
+from jarvis.retrieval.hybrid import HybridRetriever
+from jarvis.retrieval.version_ranker import (
     expand_versions,
     order_for_context,
     version_filter,
 )
-from src.router.classifier import classify_intent
+from jarvis.router.classifier import classify_intent
 
 RETRIEVAL_MODE = "hybrid"
 

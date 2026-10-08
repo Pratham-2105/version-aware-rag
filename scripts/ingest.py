@@ -5,9 +5,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.ingest.pipeline import run_ingestion
-from src.retrieval.vector_store import build_vectorstore
-from src.router.config import load_config
+from jarvis.ingest.pipeline import run_ingestion
+from jarvis.retrieval.vector_store import build_vectorstore
+from jarvis.router.config import load_config
 
 
 def main():

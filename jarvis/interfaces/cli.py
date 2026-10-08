@@ -14,8 +14,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from ollama import Client
 
-from src.retrieval.search import format_context, retrieve
-from src.retrieval.vector_store import open_vectorstore
+from jarvis.retrieval.search import format_context, retrieve
+from jarvis.retrieval.vector_store import open_vectorstore
 
 STORE_PATH = Path("data/chroma-store/")
 COLLECTION_NAME = "sample_collection"
@@ -75,7 +75,7 @@ def run_pipeline_chat():
 
 
 def run_agent_chat():
-    from src.agent.agent import ask, build_agent, model_label
+    from jarvis.agent.agent import ask, build_agent, model_label
 
     agent = build_agent()
     print(f"(agent mode, model: {model_label()})\n")

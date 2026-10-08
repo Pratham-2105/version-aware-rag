@@ -3,8 +3,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.retrieval.bm25 import BM25Index, tokenize
-from src.retrieval.hybrid import reciprocal_rank_fusion
+from jarvis.retrieval.bm25 import BM25Index, tokenize
+from jarvis.retrieval.hybrid import reciprocal_rank_fusion
 
 
 def test_tokenize_splits_filenames_and_keeps_numbers():

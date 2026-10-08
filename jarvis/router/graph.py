@@ -19,16 +19,16 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 
-from src.interfaces.cli import SYSTEM_PROMPT
-from src.retrieval.search import format_context
-from src.router import memory
-from src.router.privacy_filter import (
+from jarvis.interfaces.cli import SYSTEM_PROMPT
+from jarvis.retrieval.search import format_context
+from jarvis.router import memory
+from jarvis.router.privacy_filter import (
     assert_hosted_safe,
     filter_history,
     route_is_private,
     sources_are_private,
 )
-from src.router.prompts import (
+from jarvis.router.prompts import (
     CASUAL_PROMPT,
     LOCAL_DOWN,
     MODEL_DOWN,
@@ -168,11 +168,11 @@ def ask(app, question, thread_id):
 
 def build_default_app(cfg=None):
     """Real dependencies: Ollama router + local answer model, optional hosted, Chroma index."""
-    from src.retrieval.search import retrieve
-    from src.retrieval.vector_store import open_vectorstore
-    from src.router.config import load_config
-    from src.router.llm_router import make_router
-    from src.router.models import hosted_chat_model, local_chat_model
+    from jarvis.retrieval.search import retrieve
+    from jarvis.retrieval.vector_store import open_vectorstore
+    from jarvis.router.config import load_config
+    from jarvis.router.llm_router import make_router
+    from jarvis.router.models import hosted_chat_model, local_chat_model
 
     cfg = cfg or load_config()
     collection = open_vectorstore(cfg.index_path, cfg.collection)

@@ -3,9 +3,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.ingest.dedup import content_hash, deduplicate, find_exact_duplicates
-from src.ingest.loaders import load_vault
-from src.ingest.metadata import resolve_version_date
+from jarvis.ingest.dedup import content_hash, deduplicate, find_exact_duplicates
+from jarvis.ingest.loaders import load_vault
+from jarvis.ingest.metadata import resolve_version_date
 
 BASE_WORDS = " ".join(f"word{i}" for i in range(100))
 

@@ -1,8 +1,8 @@
 """Hybrid retrieval: dense (Chroma) + sparse (BM25) fused with Reciprocal Rank Fusion."""
 from collections import defaultdict
 
-from src.retrieval.bm25 import BM25Index
-from src.retrieval.vector_store import query_vectorstore
+from jarvis.retrieval.bm25 import BM25Index
+from jarvis.retrieval.vector_store import query_vectorstore
 
 RRF_K = 60
 CANDIDATES = 20

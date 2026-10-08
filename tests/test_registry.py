@@ -1,4 +1,4 @@
-from src.registry.store import clean_mention, merge_mentions, normalize_name
+from jarvis.registry.store import clean_mention, merge_mentions, normalize_name
 
 
 def mention(name="PixelNet", status="active", date="2026-08-01", date_source="filename",

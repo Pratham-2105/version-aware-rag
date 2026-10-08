@@ -3,13 +3,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.retrieval.bm25 import BM25Index
-from src.retrieval.version_ranker import (
+from jarvis.retrieval.bm25 import BM25Index
+from jarvis.retrieval.version_ranker import (
     expand_versions,
     order_for_context,
     version_filter,
 )
-from src.router.classifier import classify_intent
+from jarvis.router.classifier import classify_intent
 
 
 def test_current_state():

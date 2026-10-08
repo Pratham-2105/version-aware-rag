@@ -13,8 +13,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.router.config import load_config
-from src.router.graph import ask, build_default_app
+from jarvis.router.config import load_config
+from jarvis.router.graph import ask, build_default_app
 
 DEMO = [
     "hey jarvis, how's it going?",                                     # casual, no retrieval

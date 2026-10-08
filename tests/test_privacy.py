@@ -9,17 +9,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import pytest
 from langchain_core.messages import AIMessage
 
-from src.router.config import config_from_dict
-from src.router.graph import ask, build_router_graph
-from src.router.llm_router import fallback_route, normalize_route
-from src.router.memory import make_turn
-from src.router.privacy_filter import (
+from jarvis.router.config import config_from_dict
+from jarvis.router.graph import ask, build_router_graph
+from jarvis.router.llm_router import fallback_route, normalize_route
+from jarvis.router.memory import make_turn
+from jarvis.router.privacy_filter import (
     PrivacyViolation,
     assert_hosted_safe,
     filter_history,
     route_is_private,
 )
-from src.router.prompts import LOCAL_DOWN
+from jarvis.router.prompts import LOCAL_DOWN
 
 CANARY = "CANARY-7731"
 

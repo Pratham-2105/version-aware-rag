@@ -17,8 +17,8 @@ from langchain.agents import create_agent
 from langchain_core.messages import AIMessage, ToolMessage
 from langgraph.errors import GraphRecursionError
 
-from src.agent.prompts import AGENT_SYSTEM_PROMPT, CITE_NUDGE, REFUSAL, SEARCH_NUDGE
-from src.agent.tools import TOOLS
+from jarvis.agent.prompts import AGENT_SYSTEM_PROMPT, CITE_NUDGE, REFUSAL, SEARCH_NUDGE
+from jarvis.agent.tools import TOOLS
 
 # Each model call and each tool execution is one graph step.
 # 12 steps = at most ~5 tool rounds. The fuse against a model that loops on tool calls.

@@ -7,8 +7,8 @@ Fails closed: if the call errors or returns nothing usable, the message is route
 to ALL domains (which includes the private ones -> local model) and the Stage 4
 regex supplies the time intent.
 """
-from src.router.classifier import classify_intent
-from src.router.prompts import PRIVATE_RULE, ROUTER_PROMPT
+from jarvis.router.classifier import classify_intent
+from jarvis.router.prompts import PRIVATE_RULE, ROUTER_PROMPT
 
 INTENTS = ["current_state", "historical", "lookup"]
 REQUESTS = ["question", "decision", "reflect", "casual"]

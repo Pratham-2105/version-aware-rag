@@ -1,5 +1,5 @@
 """Stage 5 — deterministic lookups over the frozen registry. No LLM, same answer every time."""
-from src.registry.store import load_registry, normalize_name
+from jarvis.registry.store import load_registry, normalize_name
 
 
 def get_project_status(name, registry=None):

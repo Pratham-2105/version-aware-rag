@@ -9,11 +9,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from src.ingest.chunker import chunk_document
-from src.ingest.dedup import deduplicate
-from src.ingest.grouping import apply_unversioned, group_documents
-from src.ingest.loaders import load_vault
-from src.ingest.metadata import resolve_version_date, top_folder
+from jarvis.ingest.chunker import chunk_document
+from jarvis.ingest.dedup import deduplicate
+from jarvis.ingest.grouping import apply_unversioned, group_documents
+from jarvis.ingest.loaders import load_vault
+from jarvis.ingest.metadata import resolve_version_date, top_folder
 
 
 def print_report(report):
