@@ -46,7 +46,7 @@ Results file: `stage3_dedup_grouping_20261007_145452.json`
 **Observations**
 - `version_date` was in metadata but not shown to the model.
 - 9 of 22 files are dated by modified time (weak); dates must only be compared within a document family.
-- Grouping false positive: `chronicle_july2026` and `chronicle_sep2026` form one family although they are diary entries, not versions. Harmless only while "latest wins" is restricted to current-state questions.
+- Grouping false positive: `chronicle_july2026` and `chronicle_sep2026` form one family although they are diary entries, not versions. Harmless only while "latest wins" is restricted to current-state questions. *Fixed in Stage 6.5: `personal/` is marked as not versioned in `config.yaml`.*
 - Near-duplicate detection is unit-tested only; both sample-vault duplicates turned out to be exact after normalization.
 
 ---
@@ -222,6 +222,40 @@ Lesson: a prompt can ask for a rule, but only code can enforce it. Both the "alw
 
 ---
 
+## Stage 6.5 — router (8 Oct 2026)
+
+Results files: `stage65_regression_20261008_210233.json`, `stage65_router_scoped_20261008_210818.json`, `stage65_router_unscoped_20261008_211410.json`
+
+A small model call now reads each message first and fills a fixed form: the message rewritten to stand alone, 1–2 life areas, a time mode, and a message type. The pipeline answers with that decision. Folders, life areas and privacy come from `config.yaml`. Indexing now stores each chunk's top folder, and the `personal/` folder is marked as holding separate entries, not versions. This fixes the Stage 3 chronicle false positive: the two chronicles are no longer one family.
+
+**Regression run — 82.2%.** The pipeline was re-run after re-indexing. It failed exactly 7, 15, 18, 21, 27, 30, 32, 33, the same as noise-check runs b and c. Indexing changes did not touch V1.
+
+**Router, search limited to the chosen areas — 68.9%.** Source found dropped from 92.3% to 82.1%, so the whole loss is recall. New failures: 2, 4, 12, 20, 34, 43.
+- **Q12 and Q43 were routed to the personal area only,** so only `personal/` was searched and the right files were never candidates. The router prompt tells the model to include personal when unsure, because missing a private message is a leak while a false alarm only costs quality. That bias is safe for choosing a model, but expensive as a search filter. 7 of the 45 factual questions were routed personal: 9, 12, 18, 29, 32, 40, 43.
+- **Q2, Q4, Q20 and Q34 are not yet analysed;** they are most likely routed to an area whose folders don't hold the answer.
+
+**Router, search not limited — 82.2%.** Same score as the pipeline. Fixed 33 and broke 44, a one-for-one swap inside the noise band. Failed: 7, 15, 18, 21, 27, 30, 32, 44.
+
+**Time routing: 11/15, against the regex's 12/15.** Misses: 8, 14, 21, 43. Q8 was still answered correctly on the lookup path. A guess at why the model does worse than the agent (15/15): the agent picks the mode once per search, right next to the query; the router fills four fields at once.
+
+| Category | Pipeline | Router, limited | Router |
+|---|---|---|---|
+| Simple lookup | 76.9 | 61.5 | 84.6 |
+| Current state | 88.9 | 66.7 | 88.9 |
+| Change over time | 66.7 | 50.0 | 66.7 |
+| Project status | 100 | 100 | 100 |
+| Across documents | 66.7 | 50.0 | 50.0 |
+| Should refuse | 100 | 100 | 100 |
+| **Overall** | **82.2** | **68.9** | **82.2** |
+
+(Answer correct, %. Single runs.)
+
+Decision: the router ships with the search not limited. The life area chooses the answer's tone and which model may see the message, not what gets searched.
+
+Lesson: a filter is only as safe as whatever decides it. The latest-version filter reads dates computed by code; the area filter read a 7B model's guess, and a wrong guess can't be undone further down the line.
+
+---
+
 ## Open items
 
 - Run the same 45 questions on a stronger hosted model, to see how much of the remaining gap (pipeline and agent) is the 7B model.
@@ -229,3 +263,7 @@ Lesson: a prompt can ask for a rule, but only code can enforce it. Both the "alw
 - The generated project overview still shows weak (modified-time) dates in its status history.
 - Key-fact scoring errors (Q18 false fail, Q43 false pass): an LLM judge, spot-checked by hand, as a second scorer.
 - Q33 in the pipeline: find out why it fails every clean run when the agent answers it.
+- Router evaluation on the hand-labelled chat messages (`eval/router_messages.json`) has not been run. The number that matters there is private recall, which must be 100%.
+- Designed, not built: a middle search setting where non-private messages search every non-private folder (keeps private notes out of unrelated answers without the 13-point loss), and regex-first time routing, where the model decides only when no time words are present.
+- Analyse limited-search failures 2, 4, 20 and 34.
+- With the search not limited, personal notes can appear in non-personal answers (moved to the local model, never sent to a hosted one).

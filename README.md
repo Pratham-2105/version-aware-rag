@@ -4,7 +4,7 @@
 
 Notes, plans and project files rarely stay in one clean version. They get duplicated, backed up, rewritten, and quietly corrected by newer files while the old ones stay around. A standard RAG pipeline doesn't know any of this. It retrieves whatever text sounds closest to the question, and when that text comes from an outdated version, the model gives a confident, wrong answer.
 
-This project measures that problem on a fixed set of questions and then fixes it one stage at a time: deduplication, grouping files into versions, hybrid search, version-aware retrieval, a structured project registry, and finally a tool-using agent. Every number below comes from `eval/run_eval.py` or a hand check, and the full history of what went wrong is in [`eval/failure_log.md`](eval/failure_log.md).
+This project measures that problem on a fixed set of questions and then fixes it one stage at a time: deduplication, grouping files into versions, hybrid search, version-aware retrieval, a structured project registry, a tool-using agent, and a conversation router with privacy rules. Every number below comes from `eval/run_eval.py` or a hand check, and the full history of what went wrong is in [`eval/failure_log.md`](eval/failure_log.md).
 
 ---
 
@@ -36,12 +36,16 @@ Ask the baseline system *"What is Arjun's current Codeforces rating?"* and it re
 | + Hybrid search (BM25 + dense) | 89.7% | 75.6% | 55.6% | 100% |
 | **+ Version-aware retrieval** (mean of 3 runs) | **92.3%** | **81.5%** | **85.2%** | **100%** |
 | Agent: the model picks the tools (mean of 3 runs) | 92.3% | 75.6% | 66.7% | 66.7% |
+| Router, search limited to the chosen life area (1 run) | 82.1% | 68.9% | 66.7% | 100% |
+| Router, search not limited (1 run) | 92.3% | 82.2% | 88.9% | 100% |
 
 The agent row is not a further step on top of the stages above. It is a different design: the same retrieval and registry, but a model decides which tool to call and how to search, instead of fixed code. It is compared against the best pipeline row.
 
+The router rows are also a different design, not a further step. A model reads each message first and decides which part of the user's life it is about and whether it asks about the present, a change over time, or neither. The pipeline then answers with that decision. Both router rows are single runs.
+
 The project registry (below) doesn't change these numbers, since project status questions were already 5/5. It is checked separately.
 
-All runs use the same local setup: `qwen2.5:7b` through Ollama, `nomic-embed-text` embeddings, top 5 chunks, and a Chroma vector store. The model never changes between stages, so improvements come from retrieval, not from a better model. The last two rows are the mean of three runs at temperature 0 with a fixed seed. The earlier rows are single runs: until Stage 4 was finished, a bug meant the evaluation ran at Ollama's default temperature instead of 0 (found and fixed on 7 Oct).
+All runs use the same local setup: `qwen2.5:7b` through Ollama, `nomic-embed-text` embeddings, top 5 chunks, and a Chroma vector store. The model never changes between stages, so improvements come from retrieval, not from a better model. The version-aware and agent rows are the mean of three runs at temperature 0 with a fixed seed. The earlier rows are single runs: until Stage 4 was finished, a bug meant the evaluation ran at Ollama's default temperature instead of 0 (found and fixed on 7 Oct).
 
 ### By category (answer correct / source found)
 
@@ -53,6 +57,8 @@ All runs use the same local setup: `qwen2.5:7b` through Ollama, `nomic-embed-tex
 | Project status | 5 | 80.0 / 80.0 | 80.0 / 80.0 | 100 / 100 | 100 / 100 | 100 / 80.0 |
 | Across documents | 6 | 16.7 / 50.0 | 16.7 / 50.0 | 66.7 / 66.7 | 66.7 / 66.7 | 83.3 / 100 |
 | Should refuse | 6 | 100 | 100 | 100 | 100 | 66.7 |
+
+The router's per-category numbers are in the [failure log](eval/failure_log.md).
 
 ### What each stage taught us
 
@@ -84,6 +90,20 @@ The model picked the right time mode on all 15 time-sensitive questions, better 
 
 The rule that came out of this: **a prompt can ask the model to follow a rule, but only code can make sure it did.** Each fix was written for a type of failure, not for specific questions, and the agent was frozen before the final three runs.
 
+**Router.** To make Jarvis usable as a chat, every message now goes through a small model call first. It decides which life areas the message is about (projects, career, study, personal), whether it asks about the present, a change or neither, and what kind of message it is (a question, a decision, talking something through, or small talk). It also rewrites follow-ups like "and before that?" into full questions. The life areas, the folders behind them and which folders are private all live in one file, `config.yaml`, so anyone can point Jarvis at their own notes.
+
+The first version also limited the search to the folders of the chosen life areas. That cost 13 points: 68.9% against 82.2%, with the correct source found 82.1% of the time instead of 92.3%. When the model picks the wrong area, the right file is removed before search ranking ever sees it, and nothing later can bring it back. With the same router and no search limit, accuracy matched the pipeline exactly (82.2%). So the life area now chooses the answer's tone and which model may see the message, not what gets searched.
+
+The lesson: **a filter is only as safe as whatever decides it.** Filtering to the latest version works because it reads dates computed by code. Filtering by life area failed because it read a 7B model's guess.
+
+The model also picked the right time mode on only 11 of the 15 time-sensitive questions, one fewer than the rule-based classifier. The router's value is privacy, tone and follow-ups, not better time routing.
+
+Privacy is enforced in code, and a test suite checks it with a planted marker string:
+
+- A message that touches any private area runs only on the local model. If that model is down, Jarvis says so instead of quietly using a hosted one.
+- Answers to non-private messages never see earlier private messages in the conversation, on any model.
+- Before any call to a hosted model, code checks again that nothing private is inside, and stops if it is.
+
 ### Honest limits
 
 - **The set is small.** One question moves the overall score by 2.2 points and a category score by up to 20. Read small differences with caution.
@@ -93,6 +113,7 @@ The rule that came out of this: **a prompt can ask the model to follow a rule, b
 - **The agent's "source found" is measured more loosely.** It counts any file returned by any tool call, while the pipeline counts a fixed top 5. Compare the two on answer correctness.
 - **The agent still guesses on two refusal questions.** It correctly says the notes don't state the answer, then adds a guess anyway. The prompt forbids this; a 7B model doesn't always listen.
 - **The registry's reasons are partial.** Only 2 of 5 projects have a real stated reason; the other three are finished or active projects with no reason in the notes, and the model fills in something anyway.
+- **Personal notes can appear in non-personal answers.** With the search not limited, a question about projects can retrieve a chunk from the private folder. When that happens the answer is moved to the local model, so nothing private leaves the machine, but it can still show up in an unrelated answer. A middle setting (non-private messages search every non-private folder) is designed but not built.
 
 ---
 
@@ -111,9 +132,11 @@ INDEXING  (python scripts/ingest.py)
      ├─ remove duplicates     exact copies by content hash; near-copies only
      │                        if they also share the same date
      ├─ group versions        files with the same name apart from date or
-     │                        v1/v2 form one family, newest marked as latest
+     │                        v1/v2 form one family, newest marked as latest;
+     │                        folders marked "not versioned" in config.yaml
+     │                        (diaries) keep every file as its own entry
      ├─ split into chunks     by markdown headings
-     └─ store in Chroma       with source, date, family and is_latest
+     └─ store in Chroma       with source, folder, date, family and is_latest
 
 PROJECT REGISTRY  (python scripts/build_registry.py)
 
@@ -144,6 +167,19 @@ QUESTION TIME, AGENT  (cli.py --agent)
      └─ code checks           refused without searching → told to search once;
                               no valid citation → asked to cite once;
                               still uncited → replaced with "I don't know"
+
+QUESTION TIME, ROUTER  (scripts/chat.py)
+
+  message
+     ├─ route                 local model fills a fixed form: rewritten question,
+     │                        life areas, time mode, message type
+     ├─ search                same version-aware search as the pipeline,
+     │                        using the router's time mode
+     ├─ choose model          anything private → local model only, no fallback
+     ├─ build the prompt      base rules + tone for the message type and area
+     │                        + the last 4 exchanges of this conversation
+     │                        (earlier private ones left out for non-private answers)
+     └─ remember              the exchange is saved to this conversation's thread
 ```
 
 A few decisions worth explaining:
@@ -152,9 +188,10 @@ A few decisions worth explaining:
 - **Version information is decided per file and stored per chunk.** A chunk inherits its file's date and family, so retrieval can filter without re-reading anything.
 - **Search results are merged by rank, not score.** Keyword scores and embedding distances are on different scales. Reciprocal Rank Fusion avoids normalising them.
 - **Weak dates are hidden from the model.** Files dated only by modified time show as "undated", because a copy date would make an old file look like the newest one. The agent's project history follows the same rule.
-- **The question classifier is rule-based for now.** It is fast, free, testable, and routes 12 of the 15 time-sensitive questions correctly. The agent routes all 15 correctly, but costs accuracy elsewhere.
+- **The question classifier is still rule-based in the pipeline.** It is fast, free, testable, and routes 12 of the 15 time-sensitive questions correctly. The agent routes all 15 but costs accuracy elsewhere; the router's model gets 11.
 - **The model reads, code decides.** In the registry, the model only extracts what each file says. Dates, sources and which version wins are handled by code, so they can't be invented. In the agent, code checks every citation against the files the tools actually returned.
 - **Three tools, not five.** A timeline tool and an "have I planned this already" tool were folded into search and the prompt. Overlapping tools make a small model pick the wrong one.
+- **The router always runs on the local model.** It reads every message before anyone knows whether the message is private, so it can never be a hosted model.
 
 ---
 
@@ -183,12 +220,14 @@ python scripts/build_registry.py      # build the project registry (one model ca
 python scripts/generate_overview.py   # write docs/sample_vault_overview.md
 python src/interfaces/cli.py          # ask questions (pipeline), type 'exit' to quit
 python src/interfaces/cli.py --agent  # ask questions (agent), shows each tool call
+python scripts/chat.py                # chat through the router; /new = new conversation, /quit = exit
+python scripts/chat.py --demo         # 10 scripted messages across areas, shows each routing decision
 python scripts/agent_checkpoint.py    # 5 fixed questions through the agent, with a trace
 python eval/run_eval.py               # run the 45-question evaluation
 python -m pytest tests                # unit tests
 ```
 
-To evaluate the agent instead of the pipeline, set `ANSWER_MODE = "agent"` at the top of `eval/run_eval.py`.
+To evaluate the agent instead of the pipeline, set `ANSWER_MODE = "agent"` at the top of `eval/run_eval.py`. Set it to `"router"` to evaluate the router. Folders, life areas, privacy and models are set in `config.yaml`.
 
 The code talks to Ollama at `http://127.0.0.1:11434` directly, so an `OLLAMA_HOST=0.0.0.0` setting (used for Docker) doesn't break it.
 
@@ -197,21 +236,22 @@ The code talks to Ollama at `http://127.0.0.1:11434` directly, so an `OLLAMA_HOS
 ## Project layout
 
 ```
+config.yaml          notes folder, which folders are private, life areas, models
 data/sample-vault/   fictional test corpus, safe to share
 docs/                generated project overview
 eval/                questions, evaluation runner, results, failure log
-scripts/             rebuild the index, the registry and the overview; agent checkpoint
+scripts/             rebuild the index, the registry and the overview; agent checkpoint; chat
 src/ingest/          loading, dating, deduplication, grouping, chunking
-src/retrieval/       vector store, BM25, hybrid search, version-aware ranking
+src/retrieval/       vector store, BM25, hybrid search, version-aware ranking, filters
 src/registry/        project registry: extraction, merging, lookups
 src/agent/           agent tools, prompt, and the agent loop with citation checks
-src/router/          question classifier
+src/router/          rule-based classifier, the router (LangGraph), privacy rules, conversation memory
 src/interfaces/      command-line interface (pipeline and agent)
-tests/               unit tests for ingestion, retrieval, the registry and the agent
+tests/               unit tests for ingestion, retrieval, the registry, the agent, the router and privacy
 ```
 
 ---
 
 ## Privacy
 
-The sample vault is fictional, so the project can be tried and evaluated in public. Real personal notes are only ever used locally, stay out of the repository, and are embedded with a local model.
+The sample vault is fictional, so the project can be tried and evaluated in public. Real personal notes are only ever used locally, stay out of the repository, and are embedded with a local model. Each folder is marked shareable or private in `config.yaml`, and a folder that isn't listed is treated as private. Private messages are answered only by the local model.
