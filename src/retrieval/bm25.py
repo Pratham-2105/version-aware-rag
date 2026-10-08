@@ -3,6 +3,8 @@ import re
 
 from rank_bm25 import BM25Okapi
 
+from src.retrieval.filters import matches
+
 TOKEN = re.compile(r"[a-z0-9]+")
 
 
@@ -41,7 +43,7 @@ class BM25Index:
         for i in order:
             if not query_set & self.token_sets[i]:
                 continue
-            if where and not all(self.metadatas[i].get(k) == v for k, v in where.items()):
+            if where and not matches(self.metadatas[i], where):
                 continue
             results.append((self.ids[i], float(scores[i])))
             if len(results) == top_k:

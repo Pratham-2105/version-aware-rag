@@ -11,9 +11,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from src.ingest.chunker import chunk_document
 from src.ingest.dedup import deduplicate
-from src.ingest.grouping import group_documents
+from src.ingest.grouping import apply_unversioned, group_documents
 from src.ingest.loaders import load_vault
-from src.ingest.metadata import resolve_version_date
+from src.ingest.metadata import resolve_version_date, top_folder
 
 
 def print_report(report):
@@ -40,7 +40,7 @@ def print_report(report):
     print("=" * 60)
 
 
-def run_ingestion(vault_path, verbose=True):
+def run_ingestion(vault_path, verbose=True, unversioned_folders=()):
     vault_path = Path(vault_path)
 
     files = load_vault(vault_path)
@@ -50,6 +50,7 @@ def run_ingestion(vault_path, verbose=True):
 
     kept, dup_report = deduplicate(files, dates)
     groups = group_documents(list(kept), dates)
+    groups = apply_unversioned(groups, unversioned_folders)
 
     chunks = []
     for path, text in kept.items():
@@ -60,6 +61,7 @@ def run_ingestion(vault_path, verbose=True):
         }
         for chunk in chunk_document(text, path):
             chunk.update(file_meta)
+            chunk["folder"] = top_folder(chunk["source"])
             chunks.append(chunk)
 
     if verbose:

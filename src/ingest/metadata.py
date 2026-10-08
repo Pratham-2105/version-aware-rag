@@ -8,13 +8,24 @@ Priority (most trustworthy first):
 Dates are ISO strings "YYYY-MM-DD" so they compare correctly as plain strings
 and can be stored directly in Chroma metadata (which rejects datetime/None).
 """
+
 import re
 from datetime import datetime
 from pathlib import Path
 
 MONTHS = {
-    "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
-    "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
+    "jan": 1,
+    "feb": 2,
+    "mar": 3,
+    "apr": 4,
+    "may": 5,
+    "jun": 6,
+    "jul": 7,
+    "aug": 8,
+    "sep": 9,
+    "oct": 10,
+    "nov": 11,
+    "dec": 12,
 }
 
 # Only real month spellings, so "decision" is never read as December.
@@ -77,3 +88,12 @@ def resolve_version_date(relative_path, text, vault_path):
         return date, "header"
 
     return date_from_mtime(Path(vault_path) / relative_path), "mtime"
+
+
+ROOT_FOLDER = "."
+
+
+def top_folder(relative_path):
+    """'handovers\\x.md' -> 'handovers'; 'a/b/c.md' -> 'a'; 'x.md' -> '.' (vault root)."""
+    parts = str(relative_path).replace("\\", "/").split("/")
+    return parts[0] if len(parts) > 1 else ROOT_FOLDER

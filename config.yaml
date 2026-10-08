@@ -1,0 +1,56 @@
+# Jarvis configuration — the one file a new user edits.
+# Paths are relative to the project root.
+
+paths:
+  notes: data/sample-vault
+  index: data/chroma-store
+  collection: sample_collection
+
+# Every top-level folder of the notes.
+# privacy:   shareable | private  (private = local model only, never shown to other domains' answers)
+# versioned: true  -> files with the same name stem are versions of ONE document; newest wins for "current" questions
+#            false -> files are separate entries (diaries, logs); none is ever hidden as "older"
+# Any folder NOT listed here is treated as private until you add it (fail closed).
+folders:
+  projects:  {privacy: shareable, versioned: true}
+  handovers: {privacy: shareable, versioned: true}
+  career:    {privacy: shareable, versioned: true}
+  college:   {privacy: shareable, versioned: true}
+  dsa:       {privacy: shareable, versioned: true}
+  personal:  {privacy: private,   versioned: false}
+
+default_folder_privacy: private
+
+# Life areas the router chooses between. The description IS the router's prompt.
+# A folder may belong to several domains (handovers summarise everything).
+domains:
+  projects:
+    description: Software and ML projects - status, results, accuracy, tech stack, bugs, deployment, next steps.
+    folders: [projects, handovers]
+  career:
+    description: Jobs, internships, resume, career plans, target roles, skills to learn, long-term direction.
+    folders: [career, handovers]
+  study:
+    description: College courses, exams, grades, competitive programming, DSA practice, Codeforces or LeetCode ratings.
+    folders: [college, dsa, handovers]
+  personal:
+    description: Feelings, stress, motivation, relationships, family, friends, health, reflections on life.
+    folders: [personal]
+    style: >
+      Talk like a thoughtful friend, in plain prose. No bullet lists or plans unless asked.
+
+router:
+  scope_retrieval: false   # false = router only picks the time intent (ablation run)
+  history_turns: 2        # recent exchanges the router sees to resolve follow-ups
+
+memory:
+  turns: 4                # recent exchanges kept verbatim in the answer prompt
+
+models:
+  local:
+    model: qwen2.5:7b
+    host: http://127.0.0.1:11434
+    temperature: 0
+    seed: 42
+  hosted:
+    enabled: false        # true = NON-private answers use JARVIS_MODEL / JARVIS_API_BASE / JARVIS_API_KEY from .env

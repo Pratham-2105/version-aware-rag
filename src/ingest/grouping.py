@@ -5,12 +5,13 @@ markers stripped:
     handovers/arjun_master_handoff_aug2026.md -> handovers/arjun_master_handoff
     career/resume_v2_oct2026.md               -> career/resume
 """
+
 import re
 from collections import defaultdict
 from pathlib import Path
 
 from src.ingest.dedup import COPY_MARKERS
-from src.ingest.metadata import FILENAME_DATE
+from src.ingest.metadata import FILENAME_DATE, top_folder
 
 VERSION_TOKEN = re.compile(r"(?<![a-z])v\d+(?![a-z0-9])")
 
@@ -48,3 +49,28 @@ def group_documents(paths, dates):
                 "is_latest": dates[path] == newest_date,
             }
     return info
+
+
+def apply_unversioned(groups, unversioned_folders):
+    """Folders marked `versioned: false` hold separate entries (diaries, logs),
+    not versions of one document. Each file becomes its own family, so
+    'latest wins' can never hide an older entry.
+
+    Safe because family_key() includes the folder: a family never spans
+    a versioned and an unversioned folder."""
+    unversioned = set(unversioned_folders)
+    if not unversioned:
+        return groups
+    out = {}
+    for path, info in groups.items():
+        if top_folder(path) in unversioned:
+            out[path] = {
+                **info,
+                "doc_group_id": str(path).replace("\\", "/"),
+                "group_size": 1,
+                "version_rank": 1,
+                "is_latest": True,
+            }
+        else:
+            out[path] = info
+    return out

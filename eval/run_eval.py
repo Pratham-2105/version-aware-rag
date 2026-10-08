@@ -15,13 +15,15 @@ from src.interfaces.cli import answer_question
 
 # "pipeline" = V1 fixed pipeline (cli.answer_question), the Stages 0-4 rows.
 # "agent"    = Stage 6 agent (model picks tools and the time mode itself).
-ANSWER_MODE = "pipeline"
-STAGE_NAME = "stage6_agent_final_qwen_c"
-LLM_MODEL = "qwen2.5:7b"   # pipeline mode only; agent mode reads the model from .env
+# "router"   = Stage 6.5 LangGraph router (LLM picks intent + domains, scoped retrieval).
+ANSWER_MODE = "router"
+STAGE_NAME = "stage65_router_unscoped"
+LLM_MODEL = "qwen2.5:7b"  # pipeline mode only; agent reads .env, router reads config.yaml
 EMBED_MODEL = "nomic-embed-text"
 RESULTS_DIR = Path("eval/results")
 
 REGISTRY_TOOLS = {"get_project_status", "list_projects"}
+EXPECTED_INTENT = {"current_state_temporal": "current_state", "historical_change": "historical"}
 
 
 def route_ok(category, tool_calls):
@@ -46,6 +48,14 @@ def route_ok(category, tool_calls):
     return None
 
 
+def router_route_ok(category, route):
+    """Same question as route_ok, for the Stage 6.5 router: did it pick the right time intent?"""
+    expected = EXPECTED_INTENT.get(category)
+    if expected is None:
+        return None
+    return route["intent"] == expected
+
+
 # Load golden questions
 with open("eval/golden_questions.json", "r", encoding="utf-8") as file:
     data = json.load(file)
@@ -55,6 +65,15 @@ if ANSWER_MODE == "agent":
 
     agent = build_agent()
     LLM_MODEL = model_label()
+
+elif ANSWER_MODE == "router":
+    # Nothing to open here: router_answer builds the graph once (lazily) and opens
+    # the Chroma index named in config.yaml. Each question runs in a fresh thread.
+    from src.router.config import load_config
+    from src.router.graph import router_answer
+
+    LLM_MODEL = load_config().local_model.get("model", "local")
+
 else:
     # Open the existing collection (no re-ingestion)
     client = chromadb.PersistentClient(path="data/chroma-store")
@@ -67,8 +86,8 @@ else:
         embedding_function=embedding_function,
     )
 
-results = []          # one record per question
-category_stats = {}   # category -> counts
+results = []  # one record per question
+category_stats = {}  # category -> counts
 
 for item in data:
     qid = item["id"]
@@ -79,10 +98,14 @@ for item in data:
     print(f"[{qid}/{len(data)}] {item['question']}")
 
     agent_trace = None
+    route = None
     if ANSWER_MODE == "agent":
         agent_trace = ask(agent, item["question"])
         actual_answer = agent_trace["answer"]
         actual_paths = agent_trace["retrieved_sources"]
+    elif ANSWER_MODE == "router":
+        actual_answer, actual_sources, route = router_answer(item["question"])
+        actual_paths = [s["source"].replace("\\", "/") for s in actual_sources]
     else:
         actual_answer, actual_sources = answer_question(collection, item["question"])
         actual_paths = [s["source"].replace("\\", "/") for s in actual_sources]
@@ -90,7 +113,9 @@ for item in data:
     # Source hit: any expected file among the retrieved sources.
     # Refusal questions have no valid source, so they are not scored on this.
     scored_for_source = category != "should_refuse"
-    source_hit = any(p in expected_sources for p in actual_paths) if scored_for_source else None
+    source_hit = (
+        any(p in expected_sources for p in actual_paths) if scored_for_source else None
+    )
 
     # Answer correctness: every key fact appears in the answer
     answer_lower = actual_answer.lower()
@@ -109,14 +134,23 @@ for item in data:
         "answer_correct": answer_correct,
     }
     if agent_trace is not None:
-        record.update({
-            "status": agent_trace["status"],
-            "retried": agent_trace["retried"],
-            "draft": agent_trace["draft"],
-            "tool_calls": agent_trace["tool_calls"],
-            "route_ok": route_ok(category, agent_trace["tool_calls"]),
-            "invented_citations": agent_trace["invented_citations"],
-        })
+        record.update(
+            {
+                "status": agent_trace["status"],
+                "retried": agent_trace["retried"],
+                "draft": agent_trace["draft"],
+                "tool_calls": agent_trace["tool_calls"],
+                "route_ok": route_ok(category, agent_trace["tool_calls"]),
+                "invented_citations": agent_trace["invented_citations"],
+            }
+        )
+    if route is not None:
+        record.update(
+            {
+                "route": route,
+                "route_ok": router_route_ok(category, route),
+            }
+        )
     results.append(record)
 
     stats = category_stats.setdefault(
@@ -172,19 +206,58 @@ if ANSWER_MODE == "agent":
         "route_scored": len(routed),
         "route_misses": [r["id"] for r in routed if not r["route_ok"]],
         "status_counts": dict(Counter(r["status"] for r in results)),
-        "tool_counts": dict(Counter(c["name"] for r in results for c in r["tool_calls"])),
+        "tool_counts": dict(
+            Counter(c["name"] for r in results for c in r["tool_calls"])
+        ),
         "retried_ids": {r["id"]: r["retried"] for r in results if r["retried"]},
-        "blocked_ids": [r["id"] for r in results if r["status"] in ("no_tool", "uncited", "step_limit")],
+        "blocked_ids": [
+            r["id"]
+            for r in results
+            if r["status"] in ("no_tool", "uncited", "step_limit")
+        ],
         "invented_citation_ids": [r["id"] for r in results if r["invented_citations"]],
+    }
+
+if ANSWER_MODE == "router":
+    from src.router.config import load_config
+
+    cfg = load_config()
+    routed = [r for r in results if r["route_ok"] is not None]
+    summary["router"] = {
+        "scope_retrieval": cfg.scope_retrieval,
+        "route_correct": sum(r["route_ok"] for r in routed),
+        "route_scored": len(routed),
+        "route_misses": [r["id"] for r in routed if not r["route_ok"]],
+        "intent_counts": dict(Counter(r["route"]["intent"] for r in results)),
+        "request_counts": dict(Counter(r["route"]["request"] for r in results)),
+        "domain_counts": dict(
+            Counter(d for r in results for d in r["route"]["domains"])
+        ),
+        "private_ids": [
+            r["id"]
+            for r in results
+            if any(cfg.is_private_domain(d) for d in r["route"]["domains"])
+        ],
+        "fallback_ids": {
+            r["id"]: r["route"]["fallback"] for r in results if r["route"]["fallback"]
+        },
     }
 
 # Print report
 print("\n" + "=" * 60)
-print(f"Stage: {STAGE_NAME} | mode: {ANSWER_MODE} | LLM: {LLM_MODEL} | Embeddings: {EMBED_MODEL}")
+print(
+    f"Stage: {STAGE_NAME} | mode: {ANSWER_MODE} | LLM: {LLM_MODEL} | Embeddings: {EMBED_MODEL}"
+)
 print("=" * 60)
-print(f"Source hit rate:      {total_source_hit}/{len(source_scored)} = {summary['source_hit_rate']}%")
-print(f"Answer correctness:   {total_correct}/{total} = {summary['answer_correctness']}%")
-print(f"Refusal accuracy:     {refusal_correct}/{len(refusals)} = {summary['refusal_accuracy']}%")
+print(
+    f"Source hit rate:      {total_source_hit}/{len(source_scored)} = {summary['source_hit_rate']}%"
+)
+print(
+    f"Answer correctness:   {total_correct}/{total} = {summary['answer_correctness']}%"
+)
+print(
+    f"Refusal accuracy:     {refusal_correct}/{len(refusals)} = {summary['refusal_accuracy']}%"
+)
 print(f"Temporal correctness: {summary['temporal_correctness']}%")
 print("\nPer category:")
 for cat, s in summary["per_category"].items():
@@ -197,12 +270,26 @@ print(f"\nFailed answer IDs: {failed}")
 if ANSWER_MODE == "agent":
     a = summary["agent"]
     print("\nAgent:")
-    print(f"  Time-sensitive routing: {a['route_correct']}/{a['route_scored']}  misses: {a['route_misses']}")
+    print(
+        f"  Time-sensitive routing: {a['route_correct']}/{a['route_scored']}  misses: {a['route_misses']}"
+    )
     print(f"  Status counts:          {a['status_counts']}")
     print(f"  Tool calls:             {a['tool_counts']}")
     print(f"  Retried:                {a['retried_ids']}")
     print(f"  Blocked by enforcement: {a['blocked_ids']}")
     print(f"  Invented citations:     {a['invented_citation_ids']}")
+
+if ANSWER_MODE == "router":
+    r = summary["router"]
+    print(f"\nRouter (scope_retrieval={r['scope_retrieval']}):")
+    print(
+        f"  Time-sensitive routing: {r['route_correct']}/{r['route_scored']}  misses: {r['route_misses']}"
+    )
+    print(f"  Intents:                {r['intent_counts']}")
+    print(f"  Requests:               {r['request_counts']}")
+    print(f"  Domains:                {r['domain_counts']}")
+    print(f"  Routed private:         {r['private_ids']}")
+    print(f"  Fallbacks:              {r['fallback_ids']}")
 
 # Save everything
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
