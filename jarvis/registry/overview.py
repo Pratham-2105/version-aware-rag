@@ -1,11 +1,7 @@
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
+"""One-page project overview, generated from the registry. Written by `jarvis registry`."""
 from jarvis.registry.store import load_registry
+from jarvis.router.config import get_config
 
-OUTPUT_PATH = Path("docs/sample_vault_overview.md")
 STATUS_ORDER = ["active", "planned", "paused", "done", "abandoned", "unclear"]
 
 
@@ -19,7 +15,7 @@ def build_overview(registry):
     lines = [
         "# Project overview",
         "",
-        "_Generated from the structured registry by `scripts/generate_overview.py`. "
+        "_Generated from the structured registry by `jarvis registry`. "
         "Every row cites the document and date its status came from._",
         "",
         "| Project | Status | As of | Key metric | Why | Next step | Source |",
@@ -43,8 +39,15 @@ def build_overview(registry):
     return "\n".join(lines) + "\n"
 
 
-if __name__ == "__main__":
+def write_overview():
+    """Write the overview to the path in config.yaml (paths: overview:)."""
+    path = get_config().overview_path
     text = build_overview(load_registry())
-    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT_PATH.write_text(text, encoding="utf-8")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    return path, text
+
+
+if __name__ == "__main__":
+    _, text = write_overview()
     print(text)

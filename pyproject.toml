@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jarvis-versioned-rag"
+version = "2.0.0"
+description = "Version-aware RAG over a folder of notes: knows which copy of a document is current. Local-first, with an MCP server."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Pratham" }]
+dependencies = [
+    "chromadb>=1.0",
+    "rank-bm25>=0.2",
+    "ollama>=0.4",
+    "langchain>=1.0,<2",
+    "langchain-core>=1.0,<2",
+    "langchain-ollama>=1.0",
+    "langchain-openai>=1.0",
+    "langgraph>=1.0,<2",
+    "pydantic>=2",
+    "pyyaml>=6",
+    "python-dotenv>=1.0",
+    "mcp>=2,<3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+jarvis = "jarvis.main:main"
+
+[project.urls]
+Repository = "https://github.com/Pratham-2105/version-aware-rag"
+
+[tool.setuptools.packages.find]
+include = ["jarvis*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

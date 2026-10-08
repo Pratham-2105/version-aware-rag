@@ -1,53 +1,37 @@
-"""Stage 7 — Jarvis as an MCP server (stdio).
+"""Stage 7 — Jarvis as an MCP server (stdio).   Run: jarvis mcp [--config path]
 
-Claude Desktop / Claude Code start this file as a child process and talk to it over
-stdin/stdout. Jarvis exposes RETRIEVAL, not answers: inside those hosts the reader is
-a much stronger model than qwen2.5:7b, and the eval showed that reading, not finding,
-is where the 7B model fails.
+An MCP host (Claude Desktop, Claude Code, Cursor) starts this as a child process and
+talks to it over stdin/stdout. Jarvis exposes RETRIEVAL, not answers: inside those
+hosts the reader is a much stronger model than qwen2.5:7b, and the eval showed that
+reading, not finding, is where the 7B model fails.
 
-Privacy: the host is a hosted model, so everything a tool returns leaves this machine.
-Search is limited to folders marked shareable in config.yaml, and every chunk is
-checked again before it is returned. Private folders are never reachable through MCP.
+Privacy: the host's model is usually hosted, so everything a tool returns leaves this
+machine. Search is limited to folders marked shareable in config.yaml, and every chunk
+is checked again before it is returned. Private folders are never reachable here.
 
-Run by hand:  python src/interfaces/mcp_server.py   (sits silently, waiting for a host)
 Never print() in this file: on stdio, stdout IS the protocol.
 """
-import os
-import sys
 from functools import lru_cache
-from pathlib import Path
 from typing import Literal
-
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(PROJECT_ROOT))
 
 from mcp.server import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
 from jarvis.retrieval.search import date_note, retrieve
 from jarvis.retrieval.vector_store import open_vectorstore
-from jarvis.router.config import load_config
+from jarvis.router.config import get_config
 from jarvis.router.privacy_filter import chunk_folder
 
 TOP_K = 8  # the host model reads well, so it gets a few more chunks than qwen did
 MODE_TO_INTENT = {"current": "current_state", "history": "historical", "any": "lookup"}
-REGISTRY_FOLDERS = ("projects", "handovers")  # what scripts/build_registry.py reads
-OVERVIEW_PATH = Path("docs/sample_vault_overview.md")
 
 mcp = MCPServer("Jarvis")
-
-
-# ---------- lazy setup: nothing heavy runs until the first tool call ----------
-
-@lru_cache(maxsize=1)
-def get_config():
-    return load_config(PROJECT_ROOT / "config.yaml")
 
 
 @lru_cache(maxsize=1)
 def get_collection():
     cfg = get_config()
-    return open_vectorstore(PROJECT_ROOT / cfg.index_path, cfg.collection)
+    return open_vectorstore(cfg.index_path, cfg.collection)
 
 
 def shareable_folders(cfg):
@@ -56,7 +40,9 @@ def shareable_folders(cfg):
 
 
 def check_registry_shareable(cfg):
-    private = [f for f in REGISTRY_FOLDERS if cfg.is_private_folder(f)]
+    if not cfg.registry_folders:
+        raise ToolError("No project registry is configured (registry: folders: in config.yaml).")
+    private = [f for f in cfg.registry_folders if cfg.is_private_folder(f)]
     if private:
         raise ToolError(
             f"The project registry is built from {private}, which config.yaml marks private, "
@@ -87,8 +73,6 @@ def call_agent_tool(name, args):
         raise ToolError(f"{name} failed ({type(error).__name__}: {error})") from error
 
 
-# ---------- tools: the docstrings are what the host model reads ----------
-
 @mcp.tool()
 def search_notes(query: str, mode: Literal["current", "history", "any"] = "any") -> str:
     """Search the user's personal notes, plans and project files (version-aware).
@@ -108,7 +92,10 @@ def search_notes(query: str, mode: Literal["current", "history", "any"] = "any")
     cfg = get_config()
     folders = shareable_folders(cfg)
     if not folders:
-        raise ToolError("No folders are marked shareable in config.yaml, so nothing can be searched over MCP.")
+        raise ToolError(
+            "No folders are marked shareable in config.yaml, so nothing can be searched over MCP. "
+            "Set `privacy: shareable` on the folders you are happy to share."
+        )
     try:
         results = retrieve(
             get_collection(), query, top_k=TOP_K, intent=MODE_TO_INTENT[mode], folders=folders
@@ -116,7 +103,7 @@ def search_notes(query: str, mode: Literal["current", "history", "any"] = "any")
     except Exception as error:
         raise ToolError(
             f"Search failed ({type(error).__name__}: {error}). "
-            "Is Ollama running, and has scripts/ingest.py been run?"
+            "Is Ollama running, and has `jarvis ingest` been run?"
         ) from error
 
     blocks = format_results(results, cfg)
@@ -145,21 +132,17 @@ def list_projects(
     return call_agent_tool("list_projects", {"status": status})
 
 
-# ---------- resource: data the user can attach, rather than a model-chosen action ----------
-
 @mcp.resource("jarvis://overview")
 def project_overview() -> str:
     """One-page overview of every project, generated from the registry."""
-    check_registry_shareable(get_config())
-    path = PROJECT_ROOT / OVERVIEW_PATH
-    if not path.exists():
-        return "No overview yet. Run scripts/build_registry.py, then scripts/generate_overview.py."
-    return path.read_text(encoding="utf-8")
+    cfg = get_config()
+    check_registry_shareable(cfg)
+    if not cfg.overview_path.exists():
+        return "No overview yet. Run `jarvis registry`."
+    return cfg.overview_path.read_text(encoding="utf-8")
 
 
 def main():
-    # Hosts start us from their own working directory; the registry code uses relative paths.
-    os.chdir(PROJECT_ROOT)
     mcp.run()  # stdio by default: blocks, reads requests on stdin, writes replies on stdout
 
 

@@ -28,3 +28,4 @@ build/
 *.egg-info/
 
 data/chroma-store/ 
+.jarvis/

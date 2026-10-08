@@ -5,6 +5,8 @@ paths:
   notes: data/sample-vault
   index: data/chroma-store
   collection: sample_collection
+  registry: data/registry
+  overview: docs/sample_vault_overview.md
 
 # Every top-level folder of the notes.
 # privacy:   shareable | private  (private = local model only, never shown to other domains' answers)
@@ -20,6 +22,10 @@ folders:
   personal:  {privacy: private,   versioned: false}
 
 default_folder_privacy: private
+
+# Folders whose files describe projects (status, results). The registry reads only these.
+registry:
+  folders: [projects, handovers]
 
 # Life areas the router chooses between. The description IS the router's prompt.
 # A folder may belong to several domains (handovers summarise everything).

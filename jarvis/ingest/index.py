@@ -1,17 +1,11 @@
-"""Rebuild the index from scratch:  python -u scripts/ingest.py
-Paths and per-folder settings come from config.yaml."""
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
+"""`jarvis ingest`: rebuild the search index from the notes folder in config.yaml."""
 from jarvis.ingest.pipeline import run_ingestion
 from jarvis.retrieval.vector_store import build_vectorstore
-from jarvis.router.config import load_config
+from jarvis.router.config import get_config
 
 
-def main():
-    cfg = load_config()
+def build_index(cfg=None):
+    cfg = cfg or get_config()
     print(f"Notes: {cfg.notes_path}  ->  index: {cfg.index_path} [{cfg.collection}]")
     if cfg.unversioned_folders:
         print(f"Unversioned folders (entries, not versions): {sorted(cfg.unversioned_folders)}")
@@ -24,7 +18,4 @@ def main():
 
     build_vectorstore(chunks, cfg.index_path, cfg.collection, rebuild=True)
     print(f"Indexed {len(chunks)} chunks.")
-
-
-if __name__ == "__main__":
-    main()
+    return len(chunks)

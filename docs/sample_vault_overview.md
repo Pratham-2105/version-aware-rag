@@ -1,6 +1,6 @@
 # Project overview
 
-_Generated from the structured registry by `scripts/generate_overview.py`. Every row cites the document and date its status came from._
+_Generated from the structured registry by `jarvis registry`. Every row cites the document and date its status came from._
 
 | Project | Status | As of | Key metric | Why | Next step | Source |
 |---|---|---|---|---|---|---|

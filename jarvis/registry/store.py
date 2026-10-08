@@ -7,15 +7,33 @@ copied, not when the fact was true). On a date tie, the project's own file wins.
 
 LLM output is validated here: the schema constrains shape, code enforces meaning.
 """
+
 import json
 import re
 from pathlib import Path
 
-REGISTRY_PATH = Path("data/registry/registry.json")
+from jarvis.router.config import get_config
+
 STRONG_DATE_SOURCES = {"filename", "header"}
-TEXT_FIELDS = ("description", "status_evidence", "status_reason", "next_step", "key_metric")
+TEXT_FIELDS = (
+    "description",
+    "status_evidence",
+    "status_reason",
+    "next_step",
+    "key_metric",
+)
 STATUS_WORDS = {"active", "paused", "done", "abandoned", "planned", "unclear"}
-EMPTY_VALUES = {"", "n/a", "na", "none", "null", "not stated", "not mentioned", "unknown", "-"}
+EMPTY_VALUES = {
+    "",
+    "n/a",
+    "na",
+    "none",
+    "null",
+    "not stated",
+    "not mentioned",
+    "unknown",
+    "-",
+}
 MAX_TECH = 8
 
 
@@ -29,9 +47,9 @@ def clean_mention(m):
     """Code-side validation of one LLM mention. Returns a cleaned copy (input untouched)."""
     m = {**m, **{f: clean_value(m[f]) for f in TEXT_FIELDS}}
     if m["status_reason"].lower().rstrip(".") in STATUS_WORDS:
-        m["status_reason"] = ""                  # 'DONE' is the status, not a reason
+        m["status_reason"] = ""  # 'DONE' is the status, not a reason
     if not re.search(r"\d", m["key_metric"]):
-        m["key_metric"] = ""                     # no number -> it's a feature, not a metric
+        m["key_metric"] = ""  # no number -> it's a feature, not a metric
     tech = [clean_value(t) for t in m["tech"]]
     m["tech"] = list({t.lower(): t for t in tech if t}.values())[:MAX_TECH]
     return m
@@ -73,10 +91,14 @@ def merge_mentions(mentions):
 
     registry = {}
     for key, group in by_key.items():
-        group.sort(key=lambda m: _recency_key(m, key))   # weakest/oldest first, best last
+        group.sort(
+            key=lambda m: _recency_key(m, key)
+        )  # weakest/oldest first, best last
 
         stated = [m for m in group if m["status"] != "unclear"]
-        current = stated[-1] if stated else group[-1]    # 'unclear' never overwrites a real status
+        current = (
+            stated[-1] if stated else group[-1]
+        )  # 'unclear' never overwrites a real status
 
         # reason/next_step must come from a mention with the SAME status as current
         reason_m = _best_with(group, "status_reason", current["status"])
@@ -113,10 +135,18 @@ def merge_mentions(mentions):
     return dict(sorted(registry.items()))
 
 
-def save_registry(registry, path=REGISTRY_PATH):
+def registry_file():
+    return get_config().registry_path / "registry.json"
+
+
+def save_registry(registry, path=None):
+    path = Path(path) if path else registry_file()
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(registry, indent=2, ensure_ascii=False), encoding="utf-8")
+    path.write_text(
+        json.dumps(registry, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
 
-def load_registry(path=REGISTRY_PATH):
+def load_registry(path=None):
+    path = Path(path) if path else registry_file()
     return json.loads(path.read_text(encoding="utf-8"))
